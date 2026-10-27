@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../models/user.model.js", () => ({ User: { find: vi.fn(), findOne: vi.fn(), countDocuments: vi.fn(), distinct: vi.fn() } }));
-vi.mock("../models/course.model.js", () => ({ Course: { aggregate: vi.fn(), find: vi.fn() } }));
+vi.mock("../models/course.model.js", () => ({ Course: { aggregate: vi.fn(), find: vi.fn(), countDocuments: vi.fn() } }));
 
 import { User } from "../models/user.model.js";
 import { Course } from "../models/course.model.js";
@@ -14,6 +14,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   User.countDocuments.mockResolvedValue(1);
   User.distinct.mockResolvedValue(["Science"]);
+  Course.countDocuments.mockResolvedValue(1);
 });
 
 const mockInstructorPage = (instructors) => {
@@ -70,7 +71,8 @@ describe("public instructors", () => {
   it("returns only published courses on a public profile", async () => {
     const instructor = { _id: instructorId, name: "Amal", email: "private@example.com", instructorSubjects: ["Science"] };
     User.findOne.mockReturnValue({ select: () => ({ lean: async () => instructor }) });
-    Course.find.mockReturnValue({ select: () => ({ sort: () => ({ lean: async () => [{ _id: "c1", courseTitle: "Biology" }] }) }) });
+    const cursor = { select: vi.fn().mockReturnThis(), populate: vi.fn().mockReturnThis(), sort: vi.fn().mockReturnThis(), skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), lean: vi.fn().mockResolvedValue([{ _id: "c1", courseTitle: "Biology" }]) };
+    Course.find.mockReturnValue(cursor);
     const res = makeRes();
 
     await getPublicInstructor({ params: { instructorId } }, res);

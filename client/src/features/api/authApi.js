@@ -195,7 +195,7 @@ export const authApi = createApi({
             providesTags: ["PublicInstructors"],
         }),
         getPublicInstructor: builder.query({
-            query: (instructorId) => ({ url: `instructors/${instructorId}`, method: "GET", credentials: "omit" }),
+            query: ({ instructorId, page = 1, limit = 12 }) => ({ url: `instructors/${instructorId}`, params: { page, limit }, method: "GET", credentials: "omit" }),
             providesTags: ["PublicInstructors"],
         }),
         forgotPassword: builder.mutation({

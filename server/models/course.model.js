@@ -48,6 +48,8 @@ const courseSchema = new mongoose.Schema({
         }
 },{timestamps:true});
 
-courseSchema.index({ creator: 1, isPublished: 1 });
+courseSchema.index({ creator: 1, isPublished: 1, createdAt: -1, _id: -1 });
+courseSchema.index({ isPublished: 1, createdAt: -1, _id: -1 });
+courseSchema.index({ isPublished: 1, coursePrice: 1, _id: 1 });
 
 export const Course = mongoose.model("Course",courseSchema);

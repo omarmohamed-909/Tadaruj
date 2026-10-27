@@ -6,6 +6,9 @@ import { BookOpen, Search } from "lucide-react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/components/languageContext";
+import CoursePagination from "@/components/CoursePagination";
+import { useCoursePage, useCanonicalCoursePage } from "@/components/useCoursePage";
+import { COURSE_PAGE_SIZE } from "@/lib/coursePagination";
 
 const AllCourses = () => {
   const ui = useUiText();
@@ -13,7 +16,10 @@ const AllCourses = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const { data, isLoading, isError, error, refetch } = useGetPublishedCourseQuery();
+  const { page, setSearchParams, goToPage } = useCoursePage();
+  const { data, isLoading, isFetching, isError, error, refetch } = useGetPublishedCourseQuery({ page, limit: COURSE_PAGE_SIZE });
+  const busy = isLoading || isFetching;
+  useCanonicalCoursePage(data?.page, busy, page, setSearchParams);
   const courses = data?.courses ?? [];
 
   if (isError) {
@@ -46,7 +52,7 @@ const AllCourses = () => {
             </div>
             <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-muted px-4 py-3 text-sm font-medium text-muted-foreground">
               <BookOpen className="h-4 w-4 text-primary" />
-              {courses.length} {t("catalogCount")}
+              {data?.total ?? 0} {t("catalogCount")}
             </div>
           </div>
           <form onSubmit={(event) => { event.preventDefault(); navigate(`/course/search?query=${encodeURIComponent(query.trim())}`); }} className="mt-7 flex max-w-xl items-center gap-2 rounded-xl border border-border bg-card p-2">
@@ -56,13 +62,13 @@ const AllCourses = () => {
           </form>
         </div>
 
-        {isLoading ? <BrandedLoader /> : (
+        {busy ? <BrandedLoader /> : (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
             {courses.map((course) => <Course key={course._id} course={course} />)}
           </div>
         )}
 
-        {!isLoading && courses.length === 0 && (
+        {!busy && courses.length === 0 && (
           <div className="mt-10 rounded-[28px] border border-dashed border-border bg-card px-6 py-12 text-center">
             <h2 className="text-xl font-bold text-foreground">{t("catalogEmpty")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -70,6 +76,7 @@ const AllCourses = () => {
             </p>
           </div>
         )}
+        <CoursePagination page={data?.page ?? page} totalPages={data?.totalPages ?? 0} busy={busy} onPageChange={goToPage} />
       </div>
     </section>
   );

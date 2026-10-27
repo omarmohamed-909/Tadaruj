@@ -191,9 +191,9 @@ npm run build --prefix client
 npm run check:bundle --prefix client
 ```
 
-[GitHub Actions](https://github.com/omarmohamed-909/Tadaruj/actions/workflows/ci.yml) runs backend and frontend tests, ESLint, the production build, and the bundle budget check on pushes and pull requests.
+[GitHub Actions](https://github.com/omarmohamed-909/Tadaruj/actions/workflows/ci.yml) runs frontend checks, the full backend suite against an isolated MongoDB replica set, and Chromium browser journeys on pushes and pull requests. Browser tests cover registration, verification, manual enrollment approval, video completion, and catalog pagination.
 
-Real MongoDB integration tests are skipped by default, including in the current CI setup. They require two isolated test databases configured through `TEST_MONGO_URI` and `TEST_GOOGLE_MONGO_URI` in the supported local test environment. See the [test report](TEST_REPORT.md) for setup details and recorded results.
+The plain backend test command skips database suites without test URIs. Use `npm run test:ci --prefix server` to require them, or `npm run test:e2e --prefix client` for browser tests. See [TESTING.md](TESTING.md) for the isolated database setup, browser installation, test boundaries, and failure artifacts.
 
 ### Check service configuration
 
@@ -234,6 +234,7 @@ Tadaruj/
 ├── .github/workflows/       # Automated checks
 ├── EMAIL_SETUP.md
 ├── GOOGLE_AUTH_SETUP.md
+├── TESTING.md
 └── TEST_REPORT.md
 ```
 
@@ -253,7 +254,7 @@ Passing CI does not validate external service credentials or domain configuratio
 <a id="documentation"></a>
 ## Documentation
 
-The supporting guides below are currently written in Arabic.
+The testing guide is in English; service setup guides include Arabic instructions.
 
 | Guide | Contents |
 | --- | --- |
@@ -261,6 +262,7 @@ The supporting guides below are currently written in Arabic.
 | [Email setup](EMAIL_SETUP.md) | Resend, the test sender, domain configuration, and sending checks |
 | [Google sign-in](GOOGLE_AUTH_SETUP.md) | Google client configuration and account linking behavior |
 | [Test report](TEST_REPORT.md) | Recorded results, test coverage areas, and verification limits |
+| [Testing guide](TESTING.md) | Isolated MongoDB, Playwright journeys, CI, and pagination contracts |
 
 ---
 

@@ -8,3 +8,5 @@ __tests__
 scripts/startJourneyTest.js
 scripts/checkJourneyHttp.js
 scripts/createTestVideo.js
+scripts/startE2E.js
+scripts/runIntegrationTests.js

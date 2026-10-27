@@ -9,6 +9,7 @@ import { QuizResult } from "../models/quizResult.model.js";
 import { User } from "../models/user.model.js";
 import { AuditLog } from "../models/auditLog.model.js";
 import { courseSubject, escapeRegex, isLegacyGrade } from "../utils/courseTaxonomy.js";
+import { readCoursePagination, readPublicCoursePage } from "../utils/courseListing.js";
 import {
     deleteMediaFromCloudinary,
     deleteVideoFromCloudinary,
@@ -128,6 +129,8 @@ export const createCourse = async (req,res) => {
 
 export const searchCourse = async (req,res) => {
     try {
+        const pagination = readCoursePagination(req.query);
+        if (!pagination) return res.status(400).json({ message: "Invalid course pagination." });
         const {query = "", categories = [], subjects = [], grades = [], sortByPrice =""} = req.query;
         const parseList = (value) => (Array.isArray(value) ? value : String(value || "").split(","))
             .map((item) => String(item).trim()).filter(Boolean).slice(0, 20);
@@ -167,21 +170,16 @@ export const searchCourse = async (req,res) => {
         }
 
         // 5. ترتيب الكورسات حسب السعر
-        const sortOptions = {};
-        if(sortByPrice === "low"){
-            sortOptions.coursePrice = 1; // تصاعدي
-        } else if(sortByPrice === "high"){
-            sortOptions.coursePrice = -1; // تنازلي
-        }
+        const sortOptions = sortByPrice === "low" ? { coursePrice: 1, _id: 1 }
+            : sortByPrice === "high" ? { coursePrice: -1, _id: -1 }
+            : { createdAt: -1, _id: -1 };
 
         // 6. جلب البيانات من الداتا بيز
-        let courses = await Course.find(searchCriteria)
-            .populate({path:"creator", select:"name photoUrl"})
-            .sort(sortOptions);
+        const result = await readPublicCoursePage(searchCriteria, pagination, sortOptions);
 
         return res.status(200).json({
             success: true,
-            courses: courses || []
+            ...result,
         });
 
     } catch (error) {
@@ -193,33 +191,33 @@ export const searchCourse = async (req,res) => {
     }
 }
 
-export const getPublishedCourse = async (_, res) => {
+export const getPublishedCourse = async (req, res) => {
     try {
-        const courses = await Course.find({ isPublished: true })
-            .populate({ path: "creator", select: "name photoUrl" })
-            .populate({ path: "lectures" })
-            .sort({ createdAt: -1 });
-
-        // اخفي الـ videoUrl من كل الـ lectures في القائمة العامة
-        const safeCourses = courses.map((course) => {
-            const c = course.toObject();
-            if (c.lectures) {
-                c.lectures = c.lectures.map((lec) => {
-                    delete lec.videoUrl;
-                    delete lec.publicId;
-                    delete lec.attachmentUrl;
-                    delete lec.attachmentPublicId;
-                    delete lec.quizQuestions;
-                    return lec;
-                });
-            }
-            return c;
-        });
-
-        return res.status(200).json({ courses: safeCourses });
+        const pagination = readCoursePagination(req?.query);
+        if (!pagination) return res.status(400).json({ message: "Invalid course pagination." });
+        return res.status(200).json(await readPublicCoursePage({ isPublished: true }, pagination));
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Failed to get published courses" });
+    }
+};
+export const getCourseFilters = async (_req, res) => {
+    try {
+        const published = { isPublished: true };
+        const missing = (field) => ({ ...published, $or: [{ [field]: "" }, { [field]: { $exists: false } }] });
+        const [subjects, grades, subjectCategories, gradeCategories] = await Promise.all([
+            Course.distinct("subject", published),
+            Course.distinct("gradeLevel", published),
+            Course.distinct("category", missing("subject")),
+            Course.distinct("category", missing("gradeLevel")),
+        ]);
+        const choices = (values) => [...new Set(values.filter((value) => typeof value === "string" && value.trim()).map((value) => value.trim()))].sort((a, b) => a.localeCompare(b));
+        return res.json({
+            subjects: choices([...subjects, ...subjectCategories.filter((value) => !isLegacyGrade(value))]),
+            grades: choices([...grades, ...gradeCategories.filter(isLegacyGrade)]),
+        });
+    } catch {
+        return res.status(500).json({ message: "Could not load course filters." });
     }
 };
 export const getCreatorCourses = async (req,res) => {

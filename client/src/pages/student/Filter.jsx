@@ -1,42 +1,31 @@
 import { useState } from "react";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
-import { useGetPublishedCourseQuery } from "@/features/api/courseApi";
-import { getCourseGradeLevel, getCourseSubject, getGradeLabel } from "@/lib/courseTaxonomy";
+import { useGetCourseFiltersQuery } from "@/features/api/courseApi";
+import { getGradeLabel } from "@/lib/courseTaxonomy";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/components/languageContext";
 
-const choices = (courses, getter) => [...new Set(courses.map(getter).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-
-const Filter = ({ handleFilterChange }) => {
+const Filter = ({ handleFilterChange, selectedSubjects = [], selectedGrades = [], sortByPrice = "" }) => {
   const { t, language } = useLanguage();
-  const { data } = useGetPublishedCourseQuery();
-  const courses = data?.courses ?? [];
-  const subjects = choices(courses, getCourseSubject);
-  const grades = choices(courses, getCourseGradeLevel);
-  const [selectedSubjects, setSelectedSubjects] = useState([]);
-  const [selectedGrades, setSelectedGrades] = useState([]);
-  const [sortByPrice, setSortByPrice] = useState("");
+  const { data, isLoading, isError, refetch } = useGetCourseFiltersQuery();
+  const subjects = data?.subjects ?? [];
+  const grades = data?.grades ?? [];
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleSubject = (subject) => {
     const next = selectedSubjects.includes(subject) ? selectedSubjects.filter((item) => item !== subject) : [...selectedSubjects, subject];
-    setSelectedSubjects(next);
     handleFilterChange(next, selectedGrades, sortByPrice);
   };
 
   const toggleGrade = (grade) => {
     const next = selectedGrades.includes(grade) ? selectedGrades.filter((item) => item !== grade) : [...selectedGrades, grade];
-    setSelectedGrades(next);
     handleFilterChange(selectedSubjects, next, sortByPrice);
   };
 
   const clearFilters = () => {
-    setSelectedSubjects([]);
-    setSelectedGrades([]);
-    setSortByPrice("");
     handleFilterChange([], [], "");
   };
 
@@ -65,14 +54,16 @@ const Filter = ({ handleFilterChange }) => {
         </div>
         {(selectedSubjects.length + selectedGrades.length > 0) && <p className="mt-1 text-xs text-primary">{selectedSubjects.length + selectedGrades.length} {t("selected")}</p>}
         <div className={`${isExpanded ? "mt-4 block" : "hidden"} space-y-4 md:mt-4 md:block`}>
-          <Select value={sortByPrice} onValueChange={(value) => { setSortByPrice(value); handleFilterChange(selectedSubjects, selectedGrades, value); }}>
+          <Select value={sortByPrice} onValueChange={(value) => handleFilterChange(selectedSubjects, selectedGrades, value)}>
             <SelectTrigger><SelectValue placeholder={t("sortPrice")} /></SelectTrigger>
             <SelectContent><SelectItem value="low">{t("priceLow")}</SelectItem><SelectItem value="high">{t("priceHigh")}</SelectItem></SelectContent>
           </Select>
           <Separator />
-          {renderChoices(t("subject"), t("noSubjects"), subjects, selectedSubjects, toggleSubject)}
+          {isLoading && <p role="status" className="text-sm text-muted-foreground">{t("pleaseWait")}</p>}
+          {isError && <button type="button" onClick={() => refetch()} className="text-sm font-semibold text-primary underline">{t("retry")}</button>}
+          {!isLoading && !isError && renderChoices(t("subject"), t("noSubjects"), subjects, selectedSubjects, toggleSubject)}
           <Separator />
-          {renderChoices(t("stage"), t("noStages"), grades, selectedGrades, toggleGrade)}
+          {!isLoading && !isError && renderChoices(t("stage"), t("noStages"), grades, selectedGrades, toggleGrade)}
           {(selectedSubjects.length > 0 || selectedGrades.length > 0 || sortByPrice) && <Button type="button" variant="ghost" className="w-full" onClick={clearFilters}>{t("clearFilters")}</Button>}
         </div>
       </div>

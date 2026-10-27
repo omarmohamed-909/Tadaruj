@@ -8,6 +8,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "vitest run",
+    "test:integration": "node scripts/runIntegrationTests.js",
+    "test:ci": "node scripts/runIntegrationTests.js --all",
     "test:watch": "vitest",
     "check:setup": "node scripts/checkSetup.js",
     "email:test": "node scripts/sendTestEmail.js",
@@ -35,6 +37,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
-    "vitest": "^3.2.4"
+    "vite": "^7.3.7",
+    "vitest": "^5.0.5"
   }
 }

@@ -46,8 +46,8 @@ export const courseApi = createApi({
       invalidatesTags: ["Refresh_Creator_Course"],
     }),
     getSearchCourse: builder.query({
-      query: ({ query, subjects, grades, sortByPrice}) => {
-        const params = new URLSearchParams({ query: query || "" });
+      query: ({ query, subjects, grades, sortByPrice, page = 1, limit = 12 }) => {
+        const params = new URLSearchParams({ query: query || "", page: String(page), limit: String(limit) });
         subjects?.forEach((subject) => params.append("subjects", subject));
         grades?.forEach((grade) => params.append("grades", grade));
         if (sortByPrice) params.set("sortByPrice", sortByPrice);
@@ -70,8 +70,9 @@ export const courseApi = createApi({
           : ["Refresh_Search_Course"],
     }),
     getPublishedCourse: builder.query({
-      query: () => ({
+      query: ({ page = 1, limit = 12 } = {}) => ({
         url: "/published-courses",
+        params: { page, limit },
         method: "GET",
         credentials: "omit",
       }),
@@ -85,6 +86,10 @@ export const courseApi = createApi({
               })),
             ]
           : ["Refresh_Published_Course"],
+    }),
+    getCourseFilters: builder.query({
+      query: () => ({ url: "/filters", credentials: "omit" }),
+      providesTags: ["Refresh_Published_Course"],
     }),
     getCreatorCourse: builder.query({
       query: () => ({
@@ -269,6 +274,7 @@ export const courseApi = createApi({
   }),
 });
 export const {
+  useGetCourseFiltersQuery,
   useCreateCourseMutation,
   useGetSearchCourseQuery,
   useGetPublishedCourseQuery,

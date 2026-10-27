@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
 import { Course } from "../models/course.model.js";
+import { readCoursePagination, readPublicCoursePage } from "../utils/courseListing.js";
 
 const publicFields = "name photoUrl instructorBio instructorSubjects";
 
@@ -68,6 +69,8 @@ export const listPublicInstructors = async (req, res) => {
 
 export const getPublicInstructor = async (req, res) => {
   try {
+    const pagination = readCoursePagination(req.query);
+    if (!pagination) return res.status(400).json({ message: "Invalid course pagination." });
     const { instructorId } = req.params;
     if (!mongoose.isValidObjectId(instructorId)) {
       return res.status(404).json({ message: "Instructor not found." });
@@ -79,10 +82,7 @@ export const getPublicInstructor = async (req, res) => {
       return res.status(404).json({ message: "Instructor not found." });
     }
 
-    const courses = await Course.find({ creator: instructor._id, isPublished: true })
-      .select("courseTitle subTitle courseThumbnail coursePrice subject gradeLevel category courseLevel createdAt")
-      .sort({ createdAt: -1 })
-      .lean();
+    const result = await readPublicCoursePage({ creator: instructor._id, isPublished: true }, pagination);
 
     return res.status(200).json({
       instructor: {
@@ -91,9 +91,10 @@ export const getPublicInstructor = async (req, res) => {
         photoUrl: instructor.photoUrl || "",
         instructorBio: instructor.instructorBio || "",
         instructorSubjects: instructor.instructorSubjects || [],
-        courseCount: courses.length,
+        courseCount: result.total,
       },
-      courses: courses.map((course) => ({
+      ...result,
+      courses: result.courses.map((course) => ({
         ...course,
         creator: { _id: instructor._id, name: instructor.name, photoUrl: instructor.photoUrl || "" },
       })),

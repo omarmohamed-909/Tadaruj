@@ -5,20 +5,26 @@ import { useGetPublicInstructorQuery } from "@/features/api/authApi";
 import { useLanguage } from "@/components/languageContext";
 import Course from "./Course";
 import BrandedLoader from "@/components/BrandedLoader";
+import CoursePagination from "@/components/CoursePagination";
+import { useCoursePage, useCanonicalCoursePage } from "@/components/useCoursePage";
+import { COURSE_PAGE_SIZE } from "@/lib/coursePagination";
 
 const InstructorProfile = () => {
   const { instructorId } = useParams();
   const { t } = useLanguage();
-  const { data, isLoading, isError, refetch } = useGetPublicInstructorQuery(instructorId, { skip: !instructorId });
+  const { page, setSearchParams, goToPage } = useCoursePage();
+  const { data, isLoading, isFetching, isError, refetch } = useGetPublicInstructorQuery({ instructorId, page, limit: COURSE_PAGE_SIZE }, { skip: !instructorId, refetchOnMountOrArgChange: true });
+  const busy = isLoading || isFetching;
+  useCanonicalCoursePage(data?.page, busy, page, setSearchParams);
   const instructor = data?.instructor;
   const courses = data?.courses || [];
 
   return (
-    <main className="min-h-[calc(100vh-5rem)] bg-[#fbfaf7] px-6 py-12 dark:bg-slate-950 md:px-10 md:py-20">
+    <main className="min-h-[calc(100vh-5rem)] bg-background px-6 py-12 text-foreground md:px-10 md:py-20">
       <div className="mx-auto max-w-7xl">
         <Link to="/" className="mb-10 inline-flex items-center gap-2 text-sm font-semibold text-teal-800 dark:text-teal-300"><ArrowLeft className="h-4 w-4" /> {t("home")}</Link>
 
-        {isLoading ? <BrandedLoader /> : isError || !instructor ? (
+        {busy ? <BrandedLoader /> : isError || !instructor ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center dark:border-slate-800 dark:bg-slate-900">
             <h1 className="text-xl font-bold text-slate-950 dark:text-white">{t("unknownInstructor")}</h1>
             {isError && <button type="button" onClick={refetch} className="mt-4 font-semibold text-teal-800 underline dark:text-teal-300">{t("retry")}</button>}
@@ -36,6 +42,7 @@ const InstructorProfile = () => {
 
             <div className="mb-7 flex items-center gap-3"><BookOpen className="h-5 w-5 text-teal-700 dark:text-teal-300" /><h2 className="text-2xl font-black text-slate-950 dark:text-white">{t("instructorPublishedCourses")}</h2></div>
             {courses.length ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{courses.map((course) => <Course key={course._id} course={course} />)}</div> : <p className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{t("instructorNoCoursesBody")}</p>}
+            <CoursePagination page={data?.page ?? page} totalPages={data?.totalPages ?? 0} busy={busy} onPageChange={goToPage} />
           </>
         )}
       </div>

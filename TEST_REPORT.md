@@ -1,5 +1,17 @@
 # سجل التحقق — تدرّج
 
+## Phase 2 — 28 October 2026
+
+- Public catalog, search, and instructor courses now use bounded pagination (12 by default, at most 24). Counts cover the full result set, sorting is stable, and page/filter state survives reload and browser history.
+- Catalog filters come from a separate lightweight endpoint. Public listing responses exclude private lecture content and enrollment lists. Added indexes support published and instructor listings.
+- Real MongoDB tests caught and verified a fix for price sorting precedence. The strict test runner generates fresh isolated database names and requires the dedicated local replica set.
+- Local results: **267 backend tests passed** with real MongoDB; **122 frontend tests passed**; **3 Chromium journeys passed**, including the mobile catalog and actual video completion persisted after reload. ESLint, production build, and bundle budget passed.
+- Startup JavaScript: **615,058 bytes**, **197,106 bytes gzipped**; brand assets: **281,036 bytes**. Deferred video-engine chunk warnings remain.
+- Updated vulnerable dependency versions. `npm audit` reported **0 known vulnerabilities** in both projects at verification time; this is not a general security guarantee.
+- CI now provisions an ephemeral MongoDB replica set and runs the full backend suite plus browser journeys without production secrets. Browser reports and failure artifacts are retained for seven days.
+- The browser enrollment journey uses separate student and instructor sessions, verifies denial before approval, plays a synthetic local video to its real `ended` event, reads the saved progress through the authenticated API, and checks completion after reload. WhatsApp is fulfilled locally and outbound browser traffic is blocked; no real email, payment, or message is sent.
+- External delivery services and deployment origins are outside this phase. See [TESTING.md](TESTING.md) for setup, test boundaries, and replaying failure traces.
+
 ## Phase 1 — 28 October 2026
 
 - Completed interface localization for recovery, verification, instructor and admin workspaces, course details, learning progress, profile controls, and system notifications. User-authored names and content remain unchanged.
@@ -40,4 +52,4 @@ npm run check:bundle --prefix client
 
 لا تتضمن النسخة قواعد بيانات أو حسابات تجريبية محفوظة أو أسرارًا أو صور نتائج اختبار تخص بيئة محلية سابقة. بعض محركات الفيديو المؤجلة قد تُظهر تحذير حجم أثناء البناء.
 
-GitHub Actions يفحص اختبارات الخادم والواجهة والبناء عند الرفع وطلبات الدمج، دون مفاتيح خارجية. اختبارات MongoDB الحقيقية تتخطى في CI الحالي لعدم إعداد قاعدة هناك؛ نتائجها أعلاه من تشغيل محلي معزول.
+الأرقام العربية أعلاه تخص المراجعة المحلية السابقة. إعداد CI الحالي موضح في Phase 2: يشغّل MongoDB معزولة واختبارات المتصفح دون مفاتيح خارجية.

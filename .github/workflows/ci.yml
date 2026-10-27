@@ -45,4 +45,36 @@ jobs:
           cache: npm
           cache-dependency-path: server/package-lock.json
       - run: npm ci
-      - run: npm test
+      - name: Start isolated MongoDB replica set
+        run: bash ../.github/scripts/start-test-mongo.sh
+      - run: npm run test:ci
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix ../server
+      - name: Start isolated MongoDB replica set
+        run: bash ../.github/scripts/start-test-mongo.sh
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: browser-test-results
+          path: |
+            client/playwright-report/
+            client/test-results/
+          retention-days: 7

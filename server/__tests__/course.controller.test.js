@@ -8,6 +8,8 @@ vi.mock("../models/course.model.js", () => ({
         findByIdAndDelete: vi.fn(),
         findByIdAndUpdate: vi.fn(),
         updateOne: vi.fn(),
+        countDocuments: vi.fn(),
+        distinct: vi.fn(),
     },
 }));
 
@@ -91,6 +93,7 @@ import {
     deleteCourse,
     searchCourse,
     getPublishedCourse,
+    getCourseFilters,
     getCreatorCourses,
     getCourseById,
     getPublicCourseById,
@@ -107,7 +110,19 @@ import {
 beforeEach(() => {
     vi.clearAllMocks();
     CoursePurchase.exists.mockResolvedValue(null);
+    Course.countDocuments.mockResolvedValue(0);
 });
+
+const mockCoursePage = (courses = []) => {
+    const cursor = {
+        select: vi.fn().mockReturnThis(), populate: vi.fn().mockReturnThis(),
+        sort: vi.fn().mockReturnThis(), skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(), lean: vi.fn().mockResolvedValue(courses),
+    };
+    Course.find.mockReturnValue(cursor);
+    Course.countDocuments.mockResolvedValue(courses.length);
+    return cursor;
+};
 
 const makeReq = (overrides = {}) => ({
     body: {},
@@ -185,10 +200,7 @@ describe("searchCourse", () => {
         const fakeCourses = [{ _id: "c1", courseTitle: "Algebra" }];
         const req = makeReq({ query: { query: "Algebra", categories: [], sortByPrice: "" } });
         const res = makeRes();
-        Course.find.mockReturnValue({
-            populate: vi.fn().mockReturnThis(),
-            sort: vi.fn().mockResolvedValue(fakeCourses),
-        });
+        mockCoursePage(fakeCourses);
 
         await searchCourse(req, res);
 
@@ -201,10 +213,7 @@ describe("searchCourse", () => {
     it("handles undefined query safely", async () => {
         const req = makeReq({ query: { query: "undefined" } });
         const res = makeRes();
-        Course.find.mockReturnValue({
-            populate: vi.fn().mockReturnThis(),
-            sort: vi.fn().mockResolvedValue([]),
-        });
+        mockCoursePage();
 
         await searchCourse(req, res);
 
@@ -217,35 +226,27 @@ describe("searchCourse", () => {
     it("sorts by price ascending when sortByPrice=low", async () => {
         const req = makeReq({ query: { query: "", sortByPrice: "low" } });
         const res = makeRes();
-        const sortMock = vi.fn().mockResolvedValue([]);
-        Course.find.mockReturnValue({
-            populate: vi.fn().mockReturnThis(),
-            sort: sortMock,
-        });
+        const { sort: sortMock } = mockCoursePage();
 
         await searchCourse(req, res);
 
-        expect(sortMock).toHaveBeenCalledWith({ coursePrice: 1 });
+        expect(sortMock).toHaveBeenCalledWith({ coursePrice: 1, _id: 1 });
     });
 
     it("sorts by price descending when sortByPrice=high", async () => {
         const req = makeReq({ query: { query: "", sortByPrice: "high" } });
         const res = makeRes();
-        const sortMock = vi.fn().mockResolvedValue([]);
-        Course.find.mockReturnValue({
-            populate: vi.fn().mockReturnThis(),
-            sort: sortMock,
-        });
+        const { sort: sortMock } = mockCoursePage();
 
         await searchCourse(req, res);
 
-        expect(sortMock).toHaveBeenCalledWith({ coursePrice: -1 });
+        expect(sortMock).toHaveBeenCalledWith({ coursePrice: -1, _id: -1 });
     });
 
     it("filters subjects and stages independently, including legacy categories", async () => {
         const req = makeReq({ query: { subjects: "History", grades: "Grade 4" } });
         const res = makeRes();
-        Course.find.mockReturnValue({ populate: vi.fn().mockReturnThis(), sort: vi.fn().mockResolvedValue([]) });
+        mockCoursePage();
 
         await searchCourse(req, res);
 
@@ -260,7 +261,7 @@ describe("searchCourse", () => {
     it("treats search text as text, not regex syntax", async () => {
         const req = makeReq({ query: { query: ".*" } });
         const res = makeRes();
-        Course.find.mockReturnValue({ populate: vi.fn().mockReturnThis(), sort: vi.fn().mockResolvedValue([]) });
+        mockCoursePage();
         await searchCourse(req, res);
         expect(Course.find.mock.calls[0][0].$or[0].courseTitle.$regex).toBe("\\.\\*");
     });
@@ -269,31 +270,48 @@ describe("searchCourse", () => {
 // ─── getPublishedCourse ───────────────────────────────────────────────────────
 
 describe("getPublishedCourse", () => {
-    it("returns published courses with videoUrl stripped", async () => {
-        const fakeLecture = { _id: "l1", lectureTitle: "Intro", videoUrl: "http://video", publicId: "pid" };
-        const fakeCourse = {
-            _id: "c1",
-            isPublished: true,
-            courseTitle: "Math",
-            lectures: [fakeLecture],
-            toObject: vi.fn().mockReturnValue({
-                _id: "c1",
-                courseTitle: "Math",
-                lectures: [{ ...fakeLecture }],
-            }),
-        };
-        Course.find.mockReturnValue({
-            populate: vi.fn().mockReturnThis(),
-            sort: vi.fn().mockResolvedValue([fakeCourse]),
-        });
-
+    it("returns a lightweight public page without loading lectures or enrollments", async () => {
+        const cursor = mockCoursePage([{ _id: "c1", courseTitle: "Science" }]);
         const res = makeRes();
         await getPublishedCourse({}, res);
-
         expect(res.status).toHaveBeenCalledWith(200);
-        const { courses } = res.json.mock.calls[0][0];
-        expect(courses[0].lectures[0].videoUrl).toBeUndefined();
-        expect(courses[0].lectures[0].publicId).toBeUndefined();
+        const body = res.json.mock.calls[0][0];
+        expect(body).toMatchObject({ page: 1, limit: 12, total: 1, totalPages: 1 });
+        expect(cursor.select.mock.calls[0][0]).not.toMatch(/lectures|enrolledStudents|description/);
+        expect(cursor.populate).toHaveBeenCalledWith({ path: "creator", select: "name photoUrl" });
+        expect(cursor.populate).toHaveBeenCalledTimes(1);
+    });
+    it("bounds page size, clamps obsolete page links, and uses a stable sort", async () => {
+        const cursor = mockCoursePage();
+        Course.countDocuments.mockResolvedValue(25);
+        const res = makeRes();
+        await getPublishedCourse(makeReq({ query: { page: "999", limit: "10" } }), res);
+        expect(cursor.skip).toHaveBeenCalledWith(20);
+        expect(cursor.limit).toHaveBeenCalledWith(10);
+        expect(cursor.sort).toHaveBeenCalledWith({ createdAt: -1, _id: -1 });
+        expect(res.json.mock.calls[0][0]).toMatchObject({ page: 3, total: 25, totalPages: 3 });
+        await getPublishedCourse(makeReq({ query: { limit: "999" } }), makeRes());
+        expect(cursor.limit).toHaveBeenLastCalledWith(24);
+    });
+    it.each([{ page: ["1", "2"] }, { page: "-1" }, { page: "0" }, { limit: "all" }])("rejects malformed pagination: %j", async (query) => {
+        const res = makeRes();
+        await getPublishedCourse(makeReq({ query }), res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(Course.find).not.toHaveBeenCalled();
+    });
+});
+
+describe("public course filter choices", () => {
+    it("includes legacy subjects and stages without returning course records", async () => {
+        Course.distinct.mockResolvedValueOnce(["Science", ""])
+            .mockResolvedValueOnce(["University"])
+            .mockResolvedValueOnce(["History", "Grade 3"])
+            .mockResolvedValueOnce(["Grade 3", "Science"]);
+        const res = makeRes();
+        await getCourseFilters({}, res);
+        expect(res.json).toHaveBeenCalledWith({ subjects: ["History", "Science"], grades: ["Grade 3", "University"] });
+        expect(Course.find).not.toHaveBeenCalled();
+        expect(Course.distinct.mock.calls.every(([, criteria]) => criteria.isPublished === true)).toBe(true);
     });
 });
 
