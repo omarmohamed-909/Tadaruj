@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'docker logs tadaruj-test-mongo 2>&1 || true' ERR
 
 # The same loopback address and port are reachable inside and outside the container.
 # This container is ephemeral and is never given production credentials or volumes.
