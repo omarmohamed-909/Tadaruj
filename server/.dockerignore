@@ -1,0 +1,10 @@
+node_modules
+.env
+.env.*
+!.env.example
+.git
+coverage
+__tests__
+scripts/startJourneyTest.js
+scripts/checkJourneyHttp.js
+scripts/createTestVideo.js

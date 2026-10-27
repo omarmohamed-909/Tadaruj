@@ -1,0 +1,20 @@
+/* Reduce native HTML5 video actions in WebKit-based browsers */
+video::-webkit-media-controls-download-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-overflow-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-overflow-menu-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-picture-in-picture-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-playback-rate-button {
+  display: none !important;
+}

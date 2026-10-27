@@ -1,0 +1,42 @@
+# Dependencies and build outputs
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/coverage/
+
+# Private runtime configuration; commit examples only
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local databases, media, logs and test artifacts
+.test-runtime/
+**/uploads/
+logs/
+*.log
+*.pid
+__pycache__/
+*.pyc
+
+# Deployment bindings and editor/agent state
+.vercel/
+**/.vercel/
+.netlify/
+.idea/
+.vscode/
+.codex/
+.agents/
+.cline/
+.cursor/
+.sixth/
+.specify/
+.DS_Store
+Thumbs.db
