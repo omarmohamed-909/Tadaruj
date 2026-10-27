@@ -3,85 +3,85 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="client/public/tadaruj-logo-dark.webp">
   <source media="(prefers-color-scheme: light)" srcset="client/public/tadaruj-logo.webp">
-  <img src="client/public/tadaruj-logo.webp" alt="Tadaruj — تدرّج" width="210">
+  <img src="client/public/tadaruj-logo.webp" alt="Tadaruj" width="210">
 </picture>
 
-# Tadaruj · تدرّج
+# Tadaruj
 
-**كل مادة ليها بداية. وكل خطوة بتفرق.**
+**Every subject has a starting point. Every step counts.**
 
-منصة تعليمية تجمع الطلاب والمدرّسين في مكان واحد، لمواد ومراحل مختلفة.<br>
-اكتشف مدرّسك، اختار كورسك، وكمّل تعلّمك بالعربي أو الإنجليزي.
+A learning platform connecting students and instructors across subjects and stages.<br>
+Find your instructor, choose your course, and learn in Arabic or English.
 
 **React 19 · Express 5 · MongoDB · Tailwind CSS 4**
 
-[المزايا](#features) · [التشغيل المحلي](#quick-start) · [الإعدادات](#configuration) · [الاختبارات](#checks) · [التوثيق](#documentation)
+[Features](#features) · [Quick start](#quick-start) · [Configuration](#configuration) · [Testing](#checks) · [Documentation](#documentation)
 
 </div>
 
 ---
 
 <a id="overview"></a>
-## عن المنصة
+## Overview
 
-تدرّج مبنية حول المدرّس وتجربة الطالب: الصفحة الرئيسية تعرّف الزائر بمدرّسي المنصة، ولكل مدرّس ملف عام يعرض كورساته المنشورة. الكتالوج له صفحة مستقلة للبحث والتصفية، والمحتوى متاح لمختلف المواد، من اللغات والعلوم إلى التكنولوجيا والعلوم الإنسانية.
+Tadaruj puts instructors and students at the center of the learning experience. The homepage introduces the platform's instructors, and each instructor has a public profile showcasing their published courses. A dedicated catalog supports course search and filtering across subjects, including languages, sciences, technology, and humanities.
 
-المستودع يضم الواجهة والخادم معًا، ويحتفظ بإعدادات تشغيل ونشر منفصلة لكل جزء.
+This repository contains both the frontend and backend, with separate development and deployment configurations for each.
 
 <a id="features"></a>
-## ما الذي تقدمه تدرّج؟
+## Features
 
-| المجال | الموجود في المنصة |
+| Area | Capabilities |
 | --- | --- |
-| اكتشاف المحتوى | بطاقات المدرّسين، ملفات عامة، وكورسات قابلة للبحث والتصفية حسب المادة والمرحلة والسعر |
-| تجربة التعلّم | دروس فيديو، ملفات مرفقة، اختبارات، تعليقات، وحفظ تقدّم الطالب |
-| الحسابات | التسجيل بالبريد وكلمة المرور أو Google، تفعيل البريد، واستعادة كلمة المرور |
-| إدارة المحتوى | أدوات للمدرّس لإدارة كورساته ودروسه واختباراته وطلبات الاشتراك |
-| إدارة المنصة | لوحة إدارة للحسابات والمحتوى والطلبات، مع دعوات إدارية وسجل للعمليات |
-| الواجهة | العربية والإنجليزية، اتجاه RTL/LTR، وضع فاتح وداكن، وتصميم يستجيب للشاشات المختلفة |
-| الخدمات | Resend للبريد، Cloudinary للوسائط، وWhatsApp للتواصل بشأن الاشتراكات |
+| Discovery | Instructor cards, public profiles, and courses searchable by subject, stage, and price |
+| Learning | Video lessons, attachments, quizzes, comments, and saved student progress |
+| Accounts | Email and password registration, Google sign-in, email verification, and password recovery |
+| Content management | Instructor tools for courses, lessons, quizzes, and enrollment requests |
+| Platform management | Administration for accounts, content, and orders, with admin invitations and an audit log |
+| Interface | Arabic and English, RTL/LTR layouts, light and dark themes, and responsive pages |
+| Integrations | Resend for email, Cloudinary for media, and WhatsApp for enrollment communication |
 
-### الحسابات والصلاحيات
+### Roles and permissions
 
-| الحساب | الاستخدام |
+| Role | Responsibilities |
 | --- | --- |
-| **طالب** | استكشاف المدرّسين والكورسات، طلب الاشتراك، والوصول إلى المحتوى المتاح له ومتابعة تقدّمه |
-| **مدرّس** | إدارة محتواه وطلبات طلابه، وتأكيد المدفوعات التي استلمها بنفسه |
-| **مدير المنصة** | الإشراف على المنصة وإدارة الحسابات والمحتوى وسجل العمليات؛ تأكيد استلام أموال المدرّس يظل للمدرّس صاحب الطلب |
+| **Student** | Discover instructors and courses, request enrollment, access available content, and track progress |
+| **Instructor** | Manage their own content and enrollment requests, and confirm payments they have received |
+| **Admin** | Oversee accounts, content, orders, and audit activity; payment receipt confirmation remains with the instructor who owns the order |
 
-### كيف يعمل الاشتراك؟
+### Enrollment and payments
 
-1. يختار الطالب كورسًا مدفوعًا وينشئ طلب اشتراك.
-2. يفتح محادثة WhatsApp مع المدرّس تتضمن تفاصيل الكورس ورقم الطلب.
-3. يتفق الطالب والمدرّس على وسيلة الدفع؛ كل مدرّس يستلم أمواله مباشرة.
-4. بعد التحقق من وصول المبلغ، يؤكد المدرّس الطلب من لوحة التحكم، فيُمنح الطالب الوصول إلى الكورس.
+1. A student selects a paid course and creates an enrollment request.
+2. The student opens a WhatsApp conversation with the instructor, including the course details and order reference.
+3. The student and instructor agree on a payment method. Each instructor receives their own payments directly.
+4. After checking that the payment has arrived, the instructor confirms the order in their dashboard and the student receives course access.
 
-**إنشاء الطلب أو فتح WhatsApp لا يمنح الوصول تلقائيًا.** يشترط نشر الكورس المدفوع إضافة رقم WhatsApp للمدرّس. الكود المتبقي لـStripe مخصص للتحقق من عمليات قديمة؛ الطلبات الجديدة تستخدم المسار أعلاه.
+**Creating a request or opening WhatsApp does not grant access automatically.** Instructors must add a WhatsApp number before publishing a paid course. The remaining Stripe integration supports verification of legacy transactions; new enrollment requests follow the flow above.
 
 <a id="stack"></a>
-## التقنية
+## Tech stack
 
-| الجزء | الأدوات |
+| Layer | Tools |
 | --- | --- |
-| الواجهة | React 19، Vite 7، React Router 7، Redux Toolkit / RTK Query |
-| التصميم | Tailwind CSS 4، Radix UI، Lucide |
-| الخادم | Node.js، Express 5، Mongoose 8 |
-| قاعدة البيانات | MongoDB مع replica set لدعم معاملات تأكيد الاشتراك |
-| الدخول والبريد | Google Identity Services، JWT، Resend |
-| الوسائط | Cloudinary وروابط وصول موقّعة محددة المدة |
-| التحقق | Vitest، React Testing Library، ESLint، GitHub Actions |
+| Frontend | React 19, Vite 7, React Router 7, Redux Toolkit / RTK Query |
+| UI | Tailwind CSS 4, Radix UI, Lucide |
+| Backend | Node.js, Express 5, Mongoose 8 |
+| Database | MongoDB with a replica set for enrollment confirmation transactions |
+| Authentication and email | Google Identity Services, JWT, Resend |
+| Media | Cloudinary with signed, time-limited access URLs |
+| Quality checks | Vitest, React Testing Library, ESLint, GitHub Actions |
 
 <a id="quick-start"></a>
-## التشغيل المحلي
+## Quick start
 
-### 1. المتطلبات
+### 1. Prerequisites
 
-- **Node.js 22.12 أو أحدث** مع npm؛ إعداد CI الحالي يستخدم Node.js 22.
-- Git وصلاحية الوصول إلى المستودع.
-- MongoDB محلية أو مستضافة، مع **replica set** لدعم معاملات تأكيد الاشتراك.
-- إعداد الخدمات التي تريد اختبارها: Resend للبريد، Cloudinary للوسائط، وGoogle للدخول.
+- **Node.js 22.12 or later** and npm. The current CI configuration uses Node.js 22.
+- Git and access to this repository.
+- A local or hosted MongoDB instance with a **replica set** to support enrollment confirmation transactions.
+- Credentials for the integrations you want to use: Resend for email, Cloudinary for media, and Google for sign-in.
 
-### 2. تنزيل المشروع وتثبيت الحزم
+### 2. Clone and install
 
 ```sh
 git clone https://github.com/omarmohamed-909/Tadaruj.git
@@ -91,7 +91,7 @@ npm ci --prefix server
 npm ci --prefix client
 ```
 
-أنشئ ملفات البيئة من الأمثلة الموجودة. على **PowerShell**:
+Create your environment files from the provided examples. In **PowerShell**:
 
 ```powershell
 Copy-Item server/.env.example server/.env
@@ -99,7 +99,7 @@ Copy-Item client/.env.example client/.env.local
 ```
 
 <details>
-<summary>على macOS أو Linux</summary>
+<summary>macOS or Linux</summary>
 
 ```sh
 cp server/.env.example server/.env
@@ -108,64 +108,64 @@ cp client/.env.example client/.env.local
 
 </details>
 
-املأ القيم الخاصة ببيئتك قبل التشغيل؛ ملفات الأمثلة وحدها لا تربط قاعدة بيانات أو حسابات خدمات فعلية.
+Fill in your environment values before starting. The example files do not connect a database or configure real service accounts on their own.
 
-### 3. تشغيل الخادم والواجهة
+### 3. Start the application
 
-في نافذة طرفية أولى، من جذر المشروع:
+In one terminal, from the repository root:
 
 ```sh
 npm run dev --prefix server
 ```
 
-وفي نافذة ثانية، من الجذر أيضًا:
+In a second terminal, also from the repository root:
 
 ```sh
 npm run dev --prefix client
 ```
 
-| الخدمة | العنوان عند استخدام إعدادات الأمثلة |
+| Service | Address with the example configuration |
 | --- | --- |
-| الواجهة | [localhost:5173](http://localhost:5173) |
-| الخادم | `http://localhost:8080` |
-| مسارات API | `http://localhost:8080/api/v1` |
+| Frontend | [localhost:5173](http://localhost:5173) |
+| Backend | `http://localhost:8080` |
+| API routes | `http://localhost:8080/api/v1` |
 
-لو اختار Vite منفذًا آخر، استخدم العنوان الذي يظهر في الطرفية، وأضف أصل الواجهة الفعلي إلى إعدادات الخادم وGoogle عند الحاجة. أعد تشغيل Vite بعد تغيير متغيرات بيئة الواجهة.
+If Vite selects another port, use the address shown in the terminal and update the backend and Google origin settings as needed. Restart Vite after changing frontend environment variables.
 
 <a id="configuration"></a>
-## الإعدادات
+## Configuration
 
-### الواجهة — `client/.env.local`
+### Frontend — `client/.env.local`
 
-| المتغير | الاستخدام |
+| Variable | Purpose |
 | --- | --- |
-| `VITE_API_BASE_URL` | عنوان الخادم **دون** `/api/v1`؛ مثل `http://localhost:8080` |
+| `VITE_API_BASE_URL` | Backend address **without** `/api/v1`, such as `http://localhost:8080` |
 
-إذا لم يُحدد العنوان، تستخدم الواجهة `http://localhost:8080` على localhost، ومسارات API من نفس أصل الموقع عند النشر.
+When this variable is unset, the frontend uses `http://localhost:8080` on localhost and same-origin API routes in a deployed environment.
 
-### الخادم — `server/.env`
+### Backend — `server/.env`
 
-| المجموعة | المتغيرات | المطلوب |
+| Group | Variables | Purpose |
 | --- | --- | --- |
-| التشغيل | `PORT`، `MONGO_URI`، `SECRET_KEY` | منفذ الخادم، قاعدة خاصة بالمنصة، ومفتاح جلسات طويل وعشوائي |
-| عناوين الواجهة | `FRONTEND_URL`، `FRONTEND_URLS` | أصل الواجهة الأساسي لروابط البريد، والأصول الإضافية المسموحة مفصولة بفواصل |
-| Google | `GOOGLE_CLIENT_ID` | معرّف عميل Web؛ يجب تسجيل أصول الواجهة نفسها في Google Cloud |
-| الوسائط | `CLOUDINARY_CLOUD_NAME`، `CLOUDINARY_API_KEY`، `CLOUDINARY_API_SECRET` | حساب Cloudinary لرفع الوسائط وتقديم روابط الوصول |
-| البريد | `RESEND_API_KEY`، `RESEND_FROM_EMAIL` | مفتاح إرسال Resend وهوية المرسل |
-| تخصيص البريد | `RESEND_REPLY_TO`، `EMAIL_DELIVERY_ENABLED`، `RESEND_TEST_RECIPIENT` | عنوان الرد، تفعيل الإرسال، وقيد مستلم الاختبار |
-| الوكيل العكسي | `TRUST_PROXY_HOPS` | عدد طبقات الوكيل الموثوقة حسب الاستضافة؛ الافتراضي `0` |
+| Runtime | `PORT`, `MONGO_URI`, `SECRET_KEY` | Backend port, a dedicated database, and a long random session signing key |
+| Frontend origins | `FRONTEND_URL`, `FRONTEND_URLS` | Primary frontend origin for email links and additional allowed origins, separated by commas |
+| Google | `GOOGLE_CLIENT_ID` | Web client ID; register the same frontend origins in Google Cloud |
+| Media | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Cloudinary credentials for uploads and media access |
+| Email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Resend sending key and sender identity |
+| Email options | `RESEND_REPLY_TO`, `EMAIL_DELIVERY_ENABLED`, `RESEND_TEST_RECIPIENT` | Reply address, email delivery switch, and permitted test recipient |
+| Reverse proxy | `TRUST_PROXY_HOPS` | Number of trusted proxy hops for your hosting setup; defaults to `0` |
 
-- **Google:** التنفيذ يحتاج Client ID فقط؛ لا يحتاج Client Secret أو صلاحيات Gmail وDrive. راجع [دليل Google](GOOGLE_AUTH_SETUP.md).
-- **Resend:** الإرسال العام يحتاج دومينًا موثّقًا. المرسل التجريبي `resend.dev` محصور في بريد صاحب حساب Resend، ويمنعه التطبيق في الإنتاج. راجع [دليل البريد](EMAIL_SETUP.md).
-- **الأسرار:** ملفات البيئة الفعلية مستبعدة من Git. أي قيمة `VITE_*` تصل إلى المتصفح؛ احتفظ بالمفاتيح الخاصة في الخادم فقط.
-- إعدادات روابط التفعيل والاستعادة المحلية `ALLOW_DEV_VERIFICATION_LINKS` و`ALLOW_DEV_RESET_LINKS` تظل `false` عند الاستخدام العادي.
+- **Google:** This implementation needs a Client ID only. It does not require a Client Secret or Gmail/Drive permissions. See the [Google setup guide](GOOGLE_AUTH_SETUP.md).
+- **Resend:** Sending to users generally requires a verified domain. The `resend.dev` test sender is limited to the Resend account owner's address and is blocked by the application in production. See the [email setup guide](EMAIL_SETUP.md).
+- **Secrets:** Real environment files are excluded from Git. Every `VITE_*` value is exposed to the browser; keep private credentials on the backend.
+- Keep the development-only link options `ALLOW_DEV_VERIFICATION_LINKS` and `ALLOW_DEV_RESET_LINKS` set to `false` during normal use.
 
-المرجع الكامل للقيم المتاحة هو [مثال بيئة الخادم](server/.env.example) و[مثال بيئة الواجهة](client/.env.example).
+See the [backend environment example](server/.env.example) and [frontend environment example](client/.env.example) for all available settings.
 
 <a id="administration"></a>
-## إنشاء أول مدير للمنصة
+## Create the first admin
 
-لا توجد حسابات إدارة أو كلمات مرور افتراضية. أنشئ حسابًا عاديًا وفعّل بريده أولًا، ثم نفّذ التالي من جذر المشروع في **PowerShell** داخل بيئة الخادم الموثوقة:
+There are no default admin accounts or passwords. First, register a regular account and verify its email. Then run the following from the repository root in **PowerShell**, inside a trusted backend environment:
 
 ```powershell
 $env:BOOTSTRAP_ADMIN_EMAIL="your-admin@example.com"
@@ -176,12 +176,12 @@ Remove-Item Env:BOOTSTRAP_ADMIN_EMAIL
 Remove-Item Env:BOOTSTRAP_ADMIN_SECRET
 ```
 
-السكربت يرقّي الحساب المحدد فقط، ويسجل العملية، ويرفض العمل إذا كان هناك مدير بالفعل. بعد ذلك، استخدم دعوات لوحة الإدارة لإضافة مديرين آخرين.
+The script promotes only the specified account, records an audit entry, and refuses to run if an admin already exists. Use invitations from the admin dashboard to add further administrators.
 
 <a id="checks"></a>
-## الاختبارات والتحقق
+## Testing and validation
 
-نفّذ الأوامر التالية من جذر المشروع:
+Run these commands from the repository root:
 
 ```sh
 npm test --prefix server
@@ -191,80 +191,82 @@ npm run build --prefix client
 npm run check:bundle --prefix client
 ```
 
-[GitHub Actions](https://github.com/omarmohamed-909/Tadaruj/actions/workflows/ci.yml) يشغّل اختبارات الخادم والواجهة وESLint والبناء وفحص ميزانية التحميل عند الرفع وطلبات الدمج.
+[GitHub Actions](https://github.com/omarmohamed-909/Tadaruj/actions/workflows/ci.yml) runs backend and frontend tests, ESLint, the production build, and the bundle budget check on pushes and pull requests.
 
-اختبارات MongoDB الفعلية تتخطى افتراضيًا، بما في ذلك CI الحالي؛ تشغيلها يحتاج قاعدتي اختبار معزولتين عبر `TEST_MONGO_URI` و`TEST_GOOGLE_MONGO_URI` على بيئة الاختبار المحلية المحددة. تفاصيل التشغيل والنتائج موجودة في [سجل التحقق](TEST_REPORT.md).
+Real MongoDB integration tests are skipped by default, including in the current CI setup. They require two isolated test databases configured through `TEST_MONGO_URI` and `TEST_GOOGLE_MONGO_URI` in the supported local test environment. See the [test report](TEST_REPORT.md) for setup details and recorded results.
 
-### فحص إعداد الخدمات
+### Check service configuration
 
 ```sh
 npm run check:setup --prefix server
 npm run check:setup --prefix server -- --services
 ```
 
-الفحص لا يرسل بريدًا. لإرسال رسالة اختبار فعلية إلى بريد تملكه وتسمح له إعدادات حساب Resend:
+These checks do not send email. To send a real test message to an address you own that is allowed by your Resend configuration:
 
 ```sh
 npm run email:test --prefix server -- --to your-owned-email@example.com
 ```
 
-قبول Resend للرسالة لا يعني تسليمها؛ تُراجع حالة التسليم من لوحة Resend.
+Acceptance by Resend does not confirm delivery. Review the delivery status in the Resend dashboard.
 
 <a id="structure"></a>
-## هيكل المشروع
+## Project structure
 
 ```text
 Tadaruj/
 ├── client/
-│   ├── public/              # الهوية والملفات العامة
+│   ├── public/              # Brand assets and public files
 │   ├── src/
-│   │   ├── components/      # مكونات الواجهة
-│   │   ├── features/        # حالة التطبيق والتعامل مع API
-│   │   ├── pages/           # صفحات المنصة
-│   │   └── lib/             # أدوات الواجهة المشتركة
+│   │   ├── components/      # UI components
+│   │   ├── features/        # Application state and API integration
+│   │   ├── pages/           # Platform pages
+│   │   └── lib/             # Shared frontend utilities
 │   └── .env.example
 ├── server/
-│   ├── controllers/         # منطق طلبات API
-│   ├── middlewares/         # التحقق من الدخول والصلاحيات
-│   ├── models/              # نماذج MongoDB
-│   ├── routes/              # مسارات API
-│   ├── scripts/             # فحص الإعدادات والإدارة والاختبار
-│   ├── utils/               # البريد والوسائط وأدوات مشتركة
+│   ├── controllers/         # API request logic
+│   ├── middlewares/         # Authentication and authorization
+│   ├── models/              # MongoDB models
+│   ├── routes/              # API routes
+│   ├── scripts/             # Setup checks, administration, and testing
+│   ├── utils/               # Email, media, and shared utilities
 │   └── .env.example
-├── .github/workflows/       # التحقق الآلي
+├── .github/workflows/       # Automated checks
 ├── EMAIL_SETUP.md
 ├── GOOGLE_AUTH_SETUP.md
 └── TEST_REPORT.md
 ```
 
 <a id="deployment"></a>
-## البناء والنشر
+## Build and deployment
 
-يمكن نشر الواجهة والخادم بشكل مستقل. يتضمن المستودع إعدادات Vercel لكليهما وDockerfile للخادم.
+The frontend and backend can be deployed independently. The repository includes Vercel configurations for both and a Dockerfile for the backend.
 
-1. ابنِ الواجهة باستخدام `npm run build --prefix client`؛ ملفات النشر تظهر في `client/dist`.
-2. اضبط `VITE_API_BASE_URL` قبل بناء الواجهة على عنوان API الفعلي، وشغّل الخادم باستخدام `npm start --prefix server`.
-3. اضبط `NODE_ENV=production` وقاعدة البيانات والأسرار في بيئة استضافة الخادم.
-4. حدّث `FRONTEND_URL` و`FRONTEND_URLS`، وأضف أصل الدومين إلى عميل Google، ووثّق دومين البريد في Resend.
-5. راجع [سجل التحقق](TEST_REPORT.md)، واختبر التسجيل والتفعيل والدخول والاشتراك والوصول إلى المحتوى على بيئة النشر.
+1. Build the frontend with `npm run build --prefix client`. The output is written to `client/dist`.
+2. Set `VITE_API_BASE_URL` to the deployed backend address before building the frontend. Start the backend with `npm start --prefix server`.
+3. Configure `NODE_ENV=production`, the database connection, and secrets in the backend hosting environment.
+4. Update `FRONTEND_URL` and `FRONTEND_URLS`, register the deployed frontend origin with Google, and verify your email domain in Resend.
+5. Review the [test report](TEST_REPORT.md) and test registration, verification, sign-in, enrollment, and content access in the deployed environment.
 
-نجاح CI لا يتحقق من بيانات الخدمات الخارجية أو إعدادات الدومين. بعض محركات الفيديو المحمّلة عند الحاجة ما زالت تنتج تحذير حجم أثناء البناء؛ راجع ذلك عند تقييم أداء النشر.
+Passing CI does not validate external service credentials or domain configuration. Some video engines loaded on demand still produce bundle-size warnings during the build; account for these when reviewing deployment performance.
 
 <a id="documentation"></a>
-## التوثيق
+## Documentation
 
-| الدليل | المحتوى |
+The supporting guides below are currently written in Arabic.
+
+| Guide | Contents |
 | --- | --- |
-| [إعداد الواجهة](client/README.md) | متغير API وأوامر تطوير الواجهة |
-| [إعداد البريد](EMAIL_SETUP.md) | Resend، المرسل التجريبي، الدومين، وفحص الإرسال |
-| [تسجيل Google](GOOGLE_AUTH_SETUP.md) | إعداد عميل Google وسلوك ربط الحسابات |
-| [سجل التحقق](TEST_REPORT.md) | نتائج الاختبارات ونطاقها وحدود التحقق |
+| [Frontend setup](client/README.md) | API configuration and frontend development commands |
+| [Email setup](EMAIL_SETUP.md) | Resend, the test sender, domain configuration, and sending checks |
+| [Google sign-in](GOOGLE_AUTH_SETUP.md) | Google client configuration and account linking behavior |
+| [Test report](TEST_REPORT.md) | Recorded results, test coverage areas, and verification limits |
 
 ---
 
 <div align="center">
 
-**تدرّج · Tadaruj**<br>
-تعلّم على مهلك. وتقدّم كل يوم.
+**Tadaruj**<br>
+Learn at your own pace. Move forward every day.
 
 </div>
