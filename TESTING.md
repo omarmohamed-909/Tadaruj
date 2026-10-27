@@ -23,10 +23,10 @@ The plain backend test command skips real database suites when their test URIs a
 
 Tests require a replica set named `codex-test` at `127.0.0.1:27028`. Never point them at a platform database. The strict runner does not load `.env` or use `MONGO_URI`: it generates three separate, fresh database names and checks the replica-set identity before starting Vitest. Integration suites also refuse populated databases.
 
-GitHub Actions starts an ephemeral `mongo:8.0` container using [.github/scripts/start-test-mongo.sh](.github/scripts/start-test-mongo.sh). On a local machine with Docker, run:
+GitHub Actions starts an ephemeral `mongo:7.0` container using [.github/scripts/start-test-mongo.sh](.github/scripts/start-test-mongo.sh). This avoids the [MongoDB 8/kernel startup incompatibility](https://jira.mongodb.org/browse/SERVER-136848) on some hosted runners. It does not change the application's deployed database. On a local machine with Docker, run:
 
 ```sh
-docker run --detach --name tadaruj-test-mongo --publish 127.0.0.1:27028:27028 mongo:8.0 --port 27028 --replSet codex-test --bind_ip_all
+docker run --detach --name tadaruj-test-mongo --publish 127.0.0.1:27028:27028 mongo:7.0 --port 27028 --replSet codex-test --bind_ip_all
 docker exec tadaruj-test-mongo mongosh --quiet --port 27028 --eval 'rs.initiate({_id:"codex-test",members:[{_id:0,host:"127.0.0.1:27028"}]})'
 ```
 
