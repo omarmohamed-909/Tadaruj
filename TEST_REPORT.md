@@ -1,5 +1,16 @@
 # سجل التحقق — تدرّج
 
+## Phase 1 — 28 October 2026
+
+- Completed interface localization for recovery, verification, instructor and admin workspaces, course details, learning progress, profile controls, and system notifications. User-authored names and content remain unchanged.
+- Unified platform support links using the supplied WhatsApp number and Facebook URL.
+- Added a branded catch-all 404, a router error fallback, and a rendering error boundary with retry. Internal error details are not shown in the fallback.
+- Improved recovery forms with labeled controls, keyboard submission, localized validation, and a local-only reset shortcut.
+- Frontend validation: **118 tests passed**, ESLint passed, production build passed, and startup bundle budget passed. Workspace translations load separately from the navigation bundle.
+- New tests cover recovery validation and submission, language switching without repeating email verification, error boundary retry, missing-route recovery, preserving instructor request values, and notification localization.
+- Browser checks used the independent frontend with the isolated local QA API: Arabic recovery form, instructor course creation UI, real unknown-route handling, and updated support links. No test email or WhatsApp message was sent during this phase.
+- The deferred video-engine bundle-size warning remains. Backend behavior and external service deployment were outside this phase.
+
 النسخة المستقلة تحتوي على اختبارات الواجهة والخادم وإعدادات البناء، وتبدأ بتاريخ Git جديد.
 
 ## نطاق الاختبارات

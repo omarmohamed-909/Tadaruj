@@ -1,3 +1,4 @@
+import { useUiText, useFeedbackText } from "@/components/useUiText";
 import { useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,6 +8,8 @@ import { useGetManualOrdersQuery, useReviewManualOrderMutation } from "@/feature
 import BrandedLoader from "@/components/BrandedLoader";
 
 const ManualOrders = () => {
+  const feedback = useFeedbackText();
+  const ui = useUiText();
   const { t, language } = useLanguage();
   const isInstructor = useSelector((state) => state.auth.user?.role === "instructor");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,7 +35,7 @@ const ManualOrders = () => {
       await review({ orderId: order._id, decision }).unwrap();
       toast.success(language === "ar" ? "تم تحديث الطلب." : "Order updated.");
     } catch (error) {
-      toast.error(error?.data?.message || (language === "ar" ? "تعذّر تحديث الطلب." : "Could not update the order."));
+      toast.error(feedback(error?.data?.message || (language === "ar" ? "تعذّر تحديث الطلب." : "Could not update the order."), ui("Something went wrong. Please try again.")));
     }
   };
 
@@ -77,7 +80,7 @@ const ManualOrders = () => {
                   <p className="mt-2 text-xs text-muted-foreground">{language === "ar" ? "رقم الطلب" : "Reference"}: <span dir="ltr" className="font-mono">{order.reference}</span></p>
                 </div>
                 <div className="text-end">
-                  <p className="font-bold">{order.amount} EGP</p>
+                  <p className="font-bold">{order.amount}{" "}{ui("EGP")}</p>
                   <p className="mt-1 text-sm">{order.status === "pending" ? (language === "ar" ? "قيد الانتظار" : "Pending") : order.status === "completed" ? (language === "ar" ? "مؤكد" : "Confirmed") : (language === "ar" ? "مرفوض" : "Rejected")}</p>
                 </div>
               </div>

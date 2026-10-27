@@ -7,6 +7,8 @@ const themedRoutes = [
   "/my-learning",
   "/forgot-password",
   "/reset-password",
+  "/verify-email",
+  "/verify-email-notice",
 ];
 
 export const usesAcademyTheme = (pathname) =>

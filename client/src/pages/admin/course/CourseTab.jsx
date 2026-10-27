@@ -1,3 +1,4 @@
+import { useUiText, useFeedbackText } from "@/components/useUiText";
 import RichTextEditor from "@/components/RichTextEditor";
 import PageSkeleton from "@/components/PageSkeleton";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,8 @@ import { useLanguage } from "@/components/languageContext";
 import { toast } from "sonner";
 
 const CourseTab = () => {
+  const feedback = useFeedbackText();
+  const ui = useUiText();
   const { language } = useLanguage();
   const [input, setInput] = useState({
     courseTitle: "",
@@ -123,7 +126,7 @@ const CourseTab = () => {
 
   const updateCourseHandler = async () => {
     if (!input.courseTitle.trim() || !input.subject.trim()) {
-      toast.error("A title and subject are required.");
+      toast.error(ui("A title and subject are required."));
       return;
     }
     const formData = new FormData();
@@ -145,9 +148,9 @@ const CourseTab = () => {
     try {
       const response = await publishCourse({ courseId, query:action }).unwrap();
       refetch();
-      toast.success(response.message);
+      toast.success(feedback(response.message, ui("Changes saved.")));
     } catch (publishError) {
-      toast.error(publishError?.data?.message || "Failed to publish or unpublish course.");
+      toast.error(feedback(publishError?.data?.message || ui("Failed to publish or unpublish course."), ui("Failed to publish or unpublish course.")));
     }
   };
 
@@ -155,10 +158,10 @@ const CourseTab = () => {
     try {
       const response = await deleteCourse(courseId).unwrap();
       setIsDeleteDialogOpen(false);
-      toast.success(response?.message || "Course deleted successfully.");
+      toast.success(feedback(response?.message || ui("Course deleted successfully."), ui("Course deleted successfully.")));
       navigate(workspacePath("/course"));
     } catch (deleteError) {
-      toast.error(deleteError?.data?.message || "Failed to delete course.");
+      toast.error(feedback(deleteError?.data?.message || ui("Failed to delete course."), ui("Failed to delete course.")));
     }
   };
 
@@ -166,16 +169,16 @@ const CourseTab = () => {
   const errorMessage =
     error?.data?.message ||
     error?.error ||
-    "Failed to update course. Please try again.";
+    ui("Failed to update course. Please try again.");
 
   useEffect(() => {
     if (isSuccess) {
-      toast.success(successMessage || "Course updated.");
+      toast.success(successMessage || ui("Course updated."));
     }
     if (error) {
-      toast.error(errorMessage);
+      toast.error(feedback(errorMessage, ui("Something went wrong. Please try again.")));
     }
-  }, [isSuccess, error, successMessage, errorMessage]);
+  }, [isSuccess, error, successMessage, errorMessage, ui, feedback]);
 
   if(courseByIdLoading) return <PageSkeleton variant="form" />;
 
@@ -184,10 +187,8 @@ const CourseTab = () => {
     <Card className="overflow-hidden rounded-[24px] border border-border/80 bg-card shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)] dark:border-border dark:bg-card sm:rounded-[30px]">
       <CardHeader className="flex flex-col gap-4 border-b border-border/70 bg-muted/80 px-4 py-4 dark:border-border dark:bg-secondary/40 sm:px-6 sm:py-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
-          <CardTitle className="text-[1.85rem] sm:text-2xl">Basic Course Information</CardTitle>
-          <CardDescription className="max-w-2xl text-sm leading-6">
-            Update your course title, subject, audience, pricing, and thumbnail from one place.
-          </CardDescription>
+          <CardTitle className="text-[1.85rem] sm:text-2xl">{ui("Basic Course Information")}</CardTitle>
+          <CardDescription className="max-w-2xl text-sm leading-6">{" "}{ui("Update your course title, subject, audience, pricing, and thumbnail from one place.")}{" "}</CardDescription>
         </div>
         <div className="hidden sm:flex sm:w-auto sm:flex-wrap sm:gap-3">
           <Button
@@ -196,7 +197,7 @@ const CourseTab = () => {
             className="h-10 rounded-2xl px-3 text-xs font-semibold sm:h-11 sm:px-5 sm:text-sm"
             onClick={() => publishStatusHandler(courseByIdData?.course.isPublished ? "false" : "true")}
           >
-            {courseByIdData?.course.isPublished ? "Unpublish" : "Publish"}
+            {courseByIdData?.course.isPublished ? ui("Unpublish") : ui("Publish")}
           </Button>
           <Button
             type="button"
@@ -204,40 +205,38 @@ const CourseTab = () => {
             className="h-10 rounded-2xl px-3 text-xs font-semibold sm:h-11 sm:px-5 sm:text-sm"
             onClick={() => setIsDeleteDialogOpen(true)}
           >
-            <Trash2 className="mr-1.5 h-4 w-4" />
-            Delete Course
-          </Button>
+            <Trash2 className="mr-1.5 h-4 w-4" />{" "}{ui("Delete Course")}{" "}</Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-5 p-4 sm:space-y-6 sm:p-6 md:p-8">
         <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
-              <Label className="mb-3 block text-sm font-semibold text-foreground dark:text-foreground">Title</Label>
+              <Label className="mb-3 block text-sm font-semibold text-foreground dark:text-foreground">{ui("Title")}</Label>
               <Input
                 type="text"
                 name="courseTitle"
                 value={input.courseTitle}
                 onChange={changeEventHandeler}
-                placeholder="Ex. Fullstack developer"
+                placeholder={ui("Ex. Fullstack developer")}
                 className="h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary"
               />
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
-              <Label className="mb-3 block text-sm font-semibold text-foreground dark:text-foreground">Subtitle</Label>
+              <Label className="mb-3 block text-sm font-semibold text-foreground dark:text-foreground">{ui("Subtitle")}</Label>
               <Input
                 type="text"
                 name="subTitle"
                 value={input.subTitle}
                 onChange={changeEventHandeler}
-                placeholder="Ex. Become a Fullstack developer from zero to hero in 2 month"
+                placeholder={ui("Ex. Become a Fullstack developer from zero to hero in 2 month")}
                 className="h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary"
               />
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
-              <Label className="mb-3 block text-sm font-semibold text-foreground dark:text-foreground">Description</Label>
+              <Label className="mb-3 block text-sm font-semibold text-foreground dark:text-foreground">{ui("Description")}</Label>
               <RichTextEditor input={input} setInput={setInput} />
             </div>
           </div>
@@ -245,41 +244,39 @@ const CourseTab = () => {
           <div className="space-y-6">
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
               <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground dark:text-muted-foreground">
-                <Tag className="h-4 w-4 text-accent-foreground dark:text-accent-foreground" />
-                Course settings
-              </div>
+                <Tag className="h-4 w-4 text-accent-foreground dark:text-accent-foreground" />{" "}{ui("Course settings")}{" "}</div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
                 <div>
-                  <Label htmlFor="edit-course-subject">Subject</Label>
-                  <Input id="edit-course-subject" list="edit-course-subject-suggestions" name="subject" value={input.subject} onChange={changeEventHandeler} placeholder="e.g. Biology, Arabic, Computer Science" className="mt-2 h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary" />
+                  <Label htmlFor="edit-course-subject">{ui("Subject")}</Label>
+                  <Input id="edit-course-subject" list="edit-course-subject-suggestions" name="subject" value={input.subject} onChange={changeEventHandeler} placeholder={ui("e.g. Biology, Arabic, Computer Science")} className="mt-2 h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary" />
                   <datalist id="edit-course-subject-suggestions">{subjectSuggestions.map((item) => <option key={item} value={item} />)}</datalist>
-                  {!input.subject && <p className="mt-2 text-xs text-amber-700">Choose a subject for this course. Older courses may not have one yet.</p>}
+                  {!input.subject && <p className="mt-2 text-xs text-amber-700">{ui("Choose a subject for this course. Older courses may not have one yet.")}</p>}
                 </div>
                 <div>
-                  <Label>School stage or audience</Label>
+                  <Label>{ui("School stage or audience")}</Label>
                   <Select value={input.gradeLevel} onValueChange={(value) => setInput((current) => ({ ...current, gradeLevel: value }))}>
-                    <SelectTrigger className="mt-2 h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary"><SelectValue placeholder="Optional stage" /></SelectTrigger>
-                    <SelectContent><SelectGroup><SelectLabel>Audience</SelectLabel>{gradeOptions.map((item) => <SelectItem key={item} value={item}>{getGradeLabel(item, language)}</SelectItem>)}</SelectGroup></SelectContent>
+                    <SelectTrigger className="mt-2 h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary"><SelectValue placeholder={ui("Optional stage")} /></SelectTrigger>
+                    <SelectContent><SelectGroup><SelectLabel>{ui("Audience")}</SelectLabel>{gradeOptions.map((item) => <SelectItem key={item} value={item}>{getGradeLabel(item, language)}</SelectItem>)}</SelectGroup></SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Course Level</Label>
+                  <Label>{ui("Course Level")}</Label>
                   <Select value={input.courseLevel} onValueChange={selectCourseLevel}>
                     <SelectTrigger className="mt-2 h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary">
-                      <SelectValue placeholder="Select a course level" />
+                      <SelectValue placeholder={ui("Select a course level")} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>Course Level</SelectLabel>
-                        <SelectItem value="Beginner">Beginner</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="Advance">Advance</SelectItem>
+                        <SelectLabel>{ui("Course Level")}</SelectLabel>
+                        <SelectItem value="Beginner">{ui("Beginner")}</SelectItem>
+                        <SelectItem value="Medium">{ui("Medium")}</SelectItem>
+                        <SelectItem value="Advance">{ui("Advance")}</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="md:col-span-2 xl:col-span-1">
-                  <Label>Price in (EGP)</Label>
+                  <Label>{ui("Price in (EGP)")}</Label>
                   <div className="relative mt-2">
                     <Wallet className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -293,7 +290,7 @@ const CourseTab = () => {
                     />
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground dark:text-muted-foreground">
-                    {isFreeCourse ? "Free courses are automatically saved with a price of 0 EGP." : "Set the paid price in EGP."}
+                    {isFreeCourse ? ui("Free courses are automatically saved with a price of 0 EGP.") : ui("Set the paid price in EGP.")}
                   </p>
                 </div>
               </div>
@@ -303,12 +300,8 @@ const CourseTab = () => {
               <div className="flex items-center justify-between gap-4 rounded-2xl bg-muted px-4 py-4 dark:bg-secondary/60">
                 <div>
                   <div className="flex items-center gap-2 text-sm font-semibold text-foreground dark:text-foreground">
-                    {isFreeCourse ? <LockOpen size={16} /> : <BadgeCheck size={16} />}
-                    Full course free access
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
-                    Turn this on if learners should access the entire course without payment.
-                  </p>
+                    {isFreeCourse ? <LockOpen size={16} /> : <BadgeCheck size={16} />}{" "}{ui("Full course free access")}{" "}</div>
+                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Turn this on if learners should access the entire course without payment.")}{" "}</p>
                 </div>
                 <Switch checked={isFreeCourse} onCheckedChange={toggleFreeCourse} id="free-course-toggle" />
               </div>
@@ -316,9 +309,7 @@ const CourseTab = () => {
 
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
               <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground dark:text-muted-foreground">
-                <ImageUp className="h-4 w-4 text-accent-foreground dark:text-accent-foreground" />
-                Course thumbnail
-              </div>
+                <ImageUp className="h-4 w-4 text-accent-foreground dark:text-accent-foreground" />{" "}{ui("Course thumbnail")}{" "}</div>
               <Input
                 type="file"
                 onChange={selectThumbnail}
@@ -326,19 +317,15 @@ const CourseTab = () => {
                 className="h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary"
               />
               <div className="mt-4 rounded-2xl border border-border bg-muted p-4 dark:border-border dark:bg-secondary/60">
-                <p className="mb-3 text-sm font-medium text-foreground dark:text-foreground">
-                  Current thumbnail preview
-                </p>
+                <p className="mb-3 text-sm font-medium text-foreground dark:text-foreground">{" "}{ui("Current thumbnail preview")}{" "}</p>
                 {previewThumbnail || existingThumbnail ? (
                   <img
                     src={previewThumbnail || existingThumbnail}
                     className="h-48 w-full rounded-2xl object-cover sm:h-64"
-                    alt="Course Thumbnail"
+                    alt={ui("Course Thumbnail")}
                   />
                 ) : (
-                  <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-                    No thumbnail uploaded yet.
-                  </p>
+                  <p className="text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("No thumbnail uploaded yet.")}{" "}</p>
                 )}
               </div>
             </div>
@@ -349,13 +336,11 @@ const CourseTab = () => {
 
           {/* Desktop: Save + Cancel on the right */}
           <div className="hidden sm:flex sm:w-auto sm:gap-3">
-            <Button onClick={() => navigate(workspacePath("/course"))} variant="outline" className="h-11 rounded-2xl px-5 text-sm font-semibold">
-              Cancel
-            </Button>
+            <Button onClick={() => navigate(workspacePath("/course"))} variant="outline" className="h-11 rounded-2xl px-5 text-sm font-semibold">{" "}{ui("Cancel")}{" "}</Button>
             <Button disabled={isLoading} onClick={updateCourseHandler} className="h-11 rounded-2xl px-6 text-sm font-semibold">
               {isLoading ? (
-                <><BrandedLoader variant="tiny" className="mr-2" />Please wait</>
-              ) : "Save"}
+                <><BrandedLoader variant="tiny" className="mr-2" />{ui("Please wait")}</>
+              ) : ui("Save")}
             </Button>
           </div>
 
@@ -369,22 +354,20 @@ const CourseTab = () => {
                 className="h-10 rounded-2xl text-xs font-semibold"
                 onClick={() => publishStatusHandler(courseByIdData?.course.isPublished ? "false" : "true")}
               >
-                {courseByIdData?.course.isPublished ? "Unpublish" : "Publish"}
+                {courseByIdData?.course.isPublished ? ui("Unpublish") : ui("Publish")}
               </Button>
               <Button
                 type="button"
                 variant="destructive"
                 className="h-10 rounded-2xl text-xs font-semibold"
                 onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                Delete Course
-              </Button>
+              >{" "}{ui("Delete Course")}{" "}</Button>
             </div>
             {/* Save full width */}
             <Button disabled={isLoading} onClick={updateCourseHandler} className="h-11 w-full rounded-2xl text-sm font-semibold">
               {isLoading ? (
-                <><BrandedLoader variant="tiny" className="mr-2" />Please wait</>
-              ) : "Save Changes"}
+                <><BrandedLoader variant="tiny" className="mr-2" />{ui("Please wait")}</>
+              ) : ui("Save Changes")}
             </Button>
           </div>
 
@@ -394,19 +377,14 @@ const CourseTab = () => {
         <DialogContent className="rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)] dark:border-border dark:bg-card sm:max-w-md">
           <DialogHeader className="text-left">
             <DialogTitle className="flex items-center gap-2 text-xl">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Delete this course?
-            </DialogTitle>
-            <DialogDescription className="text-sm leading-6 text-muted-foreground dark:text-muted-foreground">
-              This action permanently removes the course, its lectures, uploaded media, quiz assets, and related discussion data.
-            </DialogDescription>
+              <AlertTriangle className="h-5 w-5 text-red-500" />{" "}{ui("Delete this course?")}{" "}</DialogTitle>
+            <DialogDescription className="text-sm leading-6 text-muted-foreground dark:text-muted-foreground">{" "}{ui("This action permanently removes the course, its lectures, uploaded media, quiz assets, and related discussion data.")}{" "}</DialogDescription>
           </DialogHeader>
 
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
-            <p className="font-semibold">{courseByIdData?.course?.courseTitle || "Selected course"}</p>
+            <p className="font-semibold">{courseByIdData?.course?.courseTitle || ui("Selected course")}</p>
             <p className="mt-1">
-              {courseByIdData?.course?.lectures?.length ?? 0} lecture(s) will be removed and cannot be restored.
-            </p>
+              {courseByIdData?.course?.lectures?.length ?? 0}{" "}{ui("lecture(s) will be removed and cannot be restored.")}{" "}</p>
           </div>
 
           <DialogFooter>
@@ -416,9 +394,7 @@ const CourseTab = () => {
               className="rounded-2xl"
               onClick={() => setIsDeleteDialogOpen(false)}
               disabled={isDeletingCourse}
-            >
-              Cancel
-            </Button>
+            >{" "}{ui("Cancel")}{" "}</Button>
             <Button
               type="button"
               variant="destructive"
@@ -428,11 +404,9 @@ const CourseTab = () => {
             >
               {isDeletingCourse ? (
                 <>
-                  <BrandedLoader variant="tiny" className="mr-2" />
-                  Deleting...
-                </>
+                  <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Deleting...")}{" "}</>
               ) : (
-                "Delete Course"
+                ui("Delete Course")
               )}
             </Button>
           </DialogFooter>

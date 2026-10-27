@@ -1,3 +1,4 @@
+import { useUiText, useFeedbackText } from "@/components/useUiText";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,6 +49,8 @@ const getAuthHeaders = () => {
 };
 
 const LectureTab = () => {
+  const feedback = useFeedbackText();
+  const ui = useUiText();
   const [lectureTitle, setLectureTitle] = useState("");
   const [uploadVideInfo, setUploadVideoInfo] = useState(null);
   const [isFree, setIsFree] = useState(false);
@@ -155,15 +158,15 @@ const LectureTab = () => {
             publicId: res.data.public_id,
           });
           setYoutubeUrl("");
-          toast.success("video uploaded successfully");
+          toast.success(ui("video uploaded successfully"));
         }
       } catch (error) {
         console.log(error);
         const errorMessage =
           error?.response?.data?.message ||
           error?.response?.data?.error?.message ||
-          "video upload failed";
-        toast.error(errorMessage);
+          ui("video upload failed");
+        toast.error(feedback(errorMessage, ui("Something went wrong. Please try again.")));
       } finally {
         setIsProcessingVideo(false);
         setMediaProgress(false);
@@ -247,14 +250,14 @@ const LectureTab = () => {
               : question
           )
         );
-        toast.success("Question image uploaded successfully.");
+        toast.success(ui("Question image uploaded successfully."));
       }
     } catch (error) {
       const errorMessage =
         error?.response?.data?.message ||
         error?.response?.data?.error?.message ||
-        "Question image upload failed.";
-      toast.error(errorMessage);
+        ui("Question image upload failed.");
+      toast.error(feedback(errorMessage, ui("Something went wrong. Please try again.")));
     } finally {
       setUploadingQuestionImageIndex(null);
     }
@@ -363,19 +366,19 @@ const LectureTab = () => {
       }
 
       if (!hasQuestionContent) {
-        toast.error("Each question needs text or an image.");
+        toast.error(ui("Each question needs text or an image."));
         return null;
       }
 
       const options = question.options.map((item) => item.trim()).filter(Boolean);
 
       if (options.length < 2) {
-        toast.error("Each question needs at least 2 options.");
+        toast.error(ui("Each question needs at least 2 options."));
         return null;
       }
 
       if (question.correctOptionIndex < 0 || question.correctOptionIndex >= options.length) {
-        toast.error("Please select a valid correct answer.");
+        toast.error(ui("Please select a valid correct answer."));
         return null;
       }
 
@@ -393,12 +396,12 @@ const LectureTab = () => {
 
   const editLectureHandler = async () => {
     if (!uploadVideInfo?.videoUrl) {
-      toast.error("Please upload a video or paste a YouTube URL.");
+      toast.error(ui("Please upload a video or paste a YouTube URL."));
       return;
     }
 
     if (!uploadVideInfo?.publicId && !YOUTUBE_URL_PATTERN.test(uploadVideInfo.videoUrl)) {
-      toast.error("Please enter a valid YouTube URL.");
+      toast.error(ui("Please enter a valid YouTube URL."));
       return;
     }
 
@@ -433,48 +436,46 @@ const LectureTab = () => {
   const lectureErrorMessage =
     error?.data?.message ||
     error?.error ||
-    "Failed to update lecture.";
+    ui("Failed to update lecture.");
 
   useEffect(() => {
     if (isSuccess) {
-      toast.success(data.message);
+      toast.success(feedback(data.message, ui("Changes saved.")));
       setPdfFile(null);
     }
     if (error) {
-      toast.error(lectureErrorMessage);
+      toast.error(feedback(lectureErrorMessage, ui("Something went wrong. Please try again.")));
     }
-  }, [isSuccess, error, data?.message, lectureErrorMessage]);
+  }, [isSuccess, error, data?.message, lectureErrorMessage, feedback, ui]);
 
   useEffect(() => {
     if (quizSuccess) {
-      toast.success(quizData?.message || "Lecture quiz updated successfully.");
+      toast.success(feedback(quizData?.message || ui("Lecture quiz updated successfully."), ui("Lecture quiz updated successfully.")));
     }
     if (quizError) {
-      toast.error(quizError?.data?.message || "Failed to update lecture quiz.");
+      toast.error(feedback(quizError?.data?.message || ui("Failed to update lecture quiz."), ui("Failed to update lecture quiz.")));
     }
-  }, [quizSuccess, quizError, quizData?.message]);
+  }, [quizSuccess, quizError, quizData?.message, ui, feedback]);
 
   useEffect(()=>{
     if(removeSuccess){
-      toast.success(removeData.message);
+      toast.success(feedback(removeData.message, ui("Changes saved.")));
     }
-  },[removeSuccess, removeData?.message])
+  },[removeSuccess, removeData?.message, feedback, ui])
 
   const selectedVideoName = uploadVideInfo?.videoUrl
     ? uploadVideInfo.publicId
       ? uploadVideInfo.videoUrl.split("/").pop()
-      : "YouTube link attached"
-    : "No video selected yet";
+      : ui("YouTube link attached")
+    : ui("No video selected yet");
   const isYoutubeVideo = Boolean(uploadVideInfo?.videoUrl) && !uploadVideInfo?.publicId;
 
   return (
     <Card className="overflow-hidden rounded-[24px] border border-border/80 bg-card shadow-[0_24px_70px_-40px_rgba(15,23,42,0.35)] dark:border-border dark:bg-card sm:rounded-[30px]">
       <CardHeader className="flex flex-col gap-4 border-b border-border/70 bg-muted/80 px-4 py-4 dark:border-border dark:bg-secondary/40 sm:px-6 sm:py-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
-          <CardTitle className="text-[1.85rem] sm:text-2xl">Edit Lecture</CardTitle>
-          <CardDescription className="max-w-2xl text-sm leading-6">
-            Update the lecture title, replace the attached video, and decide whether learners can preview it before purchasing.
-          </CardDescription>
+          <CardTitle className="text-[1.85rem] sm:text-2xl">{ui("Edit Lecture")}</CardTitle>
+          <CardDescription className="max-w-2xl text-sm leading-6">{" "}{ui("Update the lecture title, replace the attached video, and decide whether learners can preview it before purchasing.")}{" "}</CardDescription>
         </div>
         <Button
           disabled={removeLoading}
@@ -484,11 +485,9 @@ const LectureTab = () => {
         >
           {removeLoading ? (
             <>
-              <BrandedLoader variant="tiny" className="mr-2" />
-              Please wait
-            </>
+              <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Please wait")}{" "}</>
           ) : (
-            "Remove Lecture"
+            ui("Remove Lecture")
           )}
         </Button>
       </CardHeader>
@@ -496,12 +495,12 @@ const LectureTab = () => {
         <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-6">
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
-              <Label className="mb-3 block text-sm font-semibold text-foreground dark:text-foreground">Title</Label>
+              <Label className="mb-3 block text-sm font-semibold text-foreground dark:text-foreground">{ui("Title")}</Label>
               <Input
                 value={lectureTitle}
                 onChange={(e) => setLectureTitle(e.target.value)}
                 type="text"
-                placeholder="Ex. Introduction to Javascript"
+                placeholder={ui("Ex. Introduction to Javascript")}
                 className="h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary"
               />
             </div>
@@ -509,12 +508,9 @@ const LectureTab = () => {
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Label className="text-sm font-semibold text-foreground dark:text-foreground">
-                    Video <span className="text-red-500">*</span>
+                  <Label className="text-sm font-semibold text-foreground dark:text-foreground">{" "}{ui("Video")}{" "}<span className="text-red-500">*</span>
                   </Label>
-                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
-                    Upload a file or paste a YouTube link. The latest source you set will be used.
-                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Upload a file or paste a YouTube link. The latest source you set will be used.")}{" "}</p>
                 </div>
                 <div className="rounded-2xl bg-muted p-3 text-muted-foreground dark:bg-secondary dark:text-muted-foreground">
                   <UploadCloud className="h-5 w-5" />
@@ -535,9 +531,7 @@ const LectureTab = () => {
               </div>
 
               <div className="mt-4 rounded-2xl border border-border bg-card p-4 dark:border-border dark:bg-card">
-                <Label className="text-sm font-semibold text-foreground dark:text-foreground">
-                  YouTube URL
-                </Label>
+                <Label className="text-sm font-semibold text-foreground dark:text-foreground">{" "}{ui("YouTube URL")}{" "}</Label>
                 <div className="mt-3 flex items-center gap-2 rounded-2xl border border-border bg-muted px-3 py-3 dark:border-border dark:bg-secondary/70 sm:gap-3 sm:px-4">
                   <Link2 className="h-4 w-4 text-muted-foreground dark:text-muted-foreground" />
                   <Input
@@ -548,21 +542,15 @@ const LectureTab = () => {
                     className="border-none bg-transparent px-0 py-0 text-sm text-foreground focus-visible:ring-0 dark:text-foreground"
                   />
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground dark:text-muted-foreground">
-                  Paste a YouTube link if you do not want to upload the video file manually.
-                </p>
+                <p className="mt-2 text-xs text-muted-foreground dark:text-muted-foreground">{" "}{ui("Paste a YouTube link if you do not want to upload the video file manually.")}{" "}</p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Label className="text-sm font-semibold text-foreground dark:text-foreground">
-                    Description
-                  </Label>
-                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
-                    Provide a detailed description of this lecture to help students understand what they will learn.
-                  </p>
+                  <Label className="text-sm font-semibold text-foreground dark:text-foreground">{" "}{ui("Description")}{" "}</Label>
+                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Provide a detailed description of this lecture to help students understand what they will learn.")}{" "}</p>
                 </div>
                 <div className="rounded-2xl bg-muted p-3 text-muted-foreground dark:bg-secondary dark:text-muted-foreground">
                   <FileText className="h-5 w-5" />
@@ -576,12 +564,8 @@ const LectureTab = () => {
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Label className="text-sm font-semibold text-foreground dark:text-foreground">
-                    Attachment (PDF)
-                  </Label>
-                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
-                    Optionally attach a PDF file for students to download alongside this lecture.
-                  </p>
+                  <Label className="text-sm font-semibold text-foreground dark:text-foreground">{" "}{ui("Attachment (PDF)")}{" "}</Label>
+                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Optionally attach a PDF file for students to download alongside this lecture.")}{" "}</p>
                 </div>
                 <div className="rounded-2xl bg-muted p-3 text-muted-foreground dark:bg-secondary dark:text-muted-foreground">
                   <Paperclip className="h-5 w-5" />
@@ -594,7 +578,7 @@ const LectureTab = () => {
                   onChange={(e) => {
                     const file = e.target.files?.[0] || null;
                     if (file && file.size > 10 * 1024 * 1024) {
-                      toast.error("PDF file must be 10 MB or smaller.");
+                      toast.error(ui("PDF file must be 10 MB or smaller."));
                       e.target.value = "";
                       return;
                     }
@@ -608,8 +592,8 @@ const LectureTab = () => {
                     {pdfFile
                       ? pdfFile.name
                       : lecture?.attachmentUrl
-                        ? "PDF already attached — upload a new file to replace it"
-                        : "No PDF selected yet"}
+                        ? ui("PDF already attached — upload a new file to replace it")
+                        : ui("No PDF selected yet")}
                   </span>
                 </div>
                 {lecture?.attachmentUrl && !pdfFile && (
@@ -619,9 +603,7 @@ const LectureTab = () => {
                     rel="noopener noreferrer"
                     className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-accent-foreground hover:underline dark:text-accent-foreground"
                   >
-                    <Paperclip className="h-3.5 w-3.5" />
-                    View current attachment
-                  </a>
+                    <Paperclip className="h-3.5 w-3.5" />{" "}{ui("View current attachment")}{" "}</a>
                 )}
               </div>
             </div>
@@ -629,12 +611,8 @@ const LectureTab = () => {
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
               <div className="flex items-center justify-between gap-4 rounded-2xl bg-muted px-3 py-3 dark:bg-secondary/60 sm:px-4 sm:py-4">
                 <div>
-                  <Label htmlFor="lecture-preview-toggle" className="text-base font-semibold text-foreground dark:text-foreground">
-                    Is this video FREE
-                  </Label>
-                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
-                    Control whether this lecture can be previewed before purchase.
-                  </p>
+                  <Label htmlFor="lecture-preview-toggle" className="text-base font-semibold text-foreground dark:text-foreground">{" "}{ui("Is this video FREE")}{" "}</Label>
+                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Control whether this lecture can be previewed before purchase.")}{" "}</p>
                 </div>
                 <Switch checked={isFree} onCheckedChange={setIsFree} id="lecture-preview-toggle" />
               </div>
@@ -643,30 +621,21 @@ const LectureTab = () => {
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <Label className="text-base font-semibold text-foreground dark:text-foreground">
-                    Optional Quiz Questions
-                  </Label>
-                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
-                    Add multiple-choice questions for this lecture if needed.
-                  </p>
+                  <Label className="text-base font-semibold text-foreground dark:text-foreground">{" "}{ui("Optional Quiz Questions")}{" "}</Label>
+                  <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Add multiple-choice questions for this lecture if needed.")}{" "}</p>
                 </div>
                 <Button type="button" variant="outline" className="h-10 w-full rounded-2xl text-sm sm:h-11 sm:w-auto" onClick={addQuestion}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add question
-                </Button>
+                  <Plus className="mr-2 h-4 w-4" />{" "}{ui("Add question")}{" "}</Button>
               </div>
 
               {quizQuestions.length === 0 ? (
-                <div className="mt-4 rounded-2xl border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground dark:border-border dark:bg-secondary/70 dark:text-muted-foreground">
-                  No quiz questions added yet.
-                </div>
+                <div className="mt-4 rounded-2xl border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground dark:border-border dark:bg-secondary/70 dark:text-muted-foreground">{" "}{ui("No quiz questions added yet.")}{" "}</div>
               ) : (
                 <div className="mt-4 space-y-4">
                   {quizQuestions.map((question, questionIndex) => (
                     <div key={questionIndex} className="rounded-2xl border border-border bg-muted p-3 dark:border-border dark:bg-secondary/70 sm:p-4">
                       <div className="mb-3 flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-foreground dark:text-foreground">
-                          Question {questionIndex + 1}
+                        <p className="text-sm font-semibold text-foreground dark:text-foreground">{" "}{ui("Question")}{" "}{questionIndex + 1}
                         </p>
                         <Button type="button" variant="ghost" size="icon" onClick={() => removeQuestion(questionIndex)}>
                           <Trash2 className="h-4 w-4 text-red-500" />
@@ -676,16 +645,14 @@ const LectureTab = () => {
                       <Input
                         value={question.questionText}
                         onChange={(event) => updateQuestionText(questionIndex, event.target.value)}
-                        placeholder="Write your question (optional if image exists)"
+                        placeholder={ui("Write your question (optional if image exists)")}
                         className="mb-3 rounded-xl"
                       />
 
                       <div className="mb-3 rounded-xl border border-dashed border-border bg-card p-3 dark:border-border dark:bg-card/40">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <Label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">
-                            <ImageIcon className="h-3.5 w-3.5" />
-                            Question image (optional)
-                          </Label>
+                            <ImageIcon className="h-3.5 w-3.5" />{" "}{ui("Question image (optional)")}{" "}</Label>
                           {question.questionImageUrl && (
                             <Button
                               type="button"
@@ -694,9 +661,7 @@ const LectureTab = () => {
                               className="h-7 rounded-lg px-2 text-xs text-red-600 hover:text-red-700"
                               onClick={() => removeQuestionImage(questionIndex)}
                             >
-                              <Trash2 className="mr-1 h-3.5 w-3.5" />
-                              Remove image
-                            </Button>
+                              <Trash2 className="mr-1 h-3.5 w-3.5" />{" "}{ui("Remove image")}{" "}</Button>
                           )}
                         </div>
                         <Input
@@ -707,20 +672,16 @@ const LectureTab = () => {
                           className="mt-2 h-10 rounded-xl"
                         />
                         {uploadingQuestionImageIndex === questionIndex && (
-                          <p className="mt-2 text-xs text-muted-foreground dark:text-muted-foreground">
-                            Uploading image...
-                          </p>
+                          <p className="mt-2 text-xs text-muted-foreground dark:text-muted-foreground">{" "}{ui("Uploading image...")}{" "}</p>
                         )}
                         {question.questionImageUrl && (
-                          <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                            Image uploaded successfully.
-                          </p>
+                          <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">{" "}{ui("Image uploaded successfully.")}{" "}</p>
                         )}
                         {question.questionImageUrl && (
                           <div className="mt-3 overflow-hidden rounded-xl border border-border bg-muted dark:border-border dark:bg-secondary">
                             <img
                               src={secureMediaUrl(question.questionImageUrl)}
-                              alt={`Question ${questionIndex + 1}`}
+                              alt={ui("Question {0}", questionIndex + 1)}
                               className="max-h-52 w-full object-contain"
                             />
                           </div>
@@ -742,7 +703,7 @@ const LectureTab = () => {
                               onChange={(event) =>
                                 updateOptionText(questionIndex, optionIndex, event.target.value)
                               }
-                              placeholder={`Option ${optionIndex + 1}`}
+                              placeholder={ui("Option {0}", optionIndex + 1)}
                               className="rounded-xl"
                             />
                             <Button
@@ -760,9 +721,7 @@ const LectureTab = () => {
 
                       <div className="mt-3 flex justify-end">
                         <Button type="button" variant="outline" className="rounded-xl" onClick={() => addOption(questionIndex)}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add option
-                        </Button>
+                          <Plus className="mr-2 h-4 w-4" />{" "}{ui("Add option")}{" "}</Button>
                       </div>
                     </div>
                   ))}
@@ -773,11 +732,9 @@ const LectureTab = () => {
                 <Button type="button" onClick={saveQuizHandler} disabled={quizLoading} className="h-10 w-full rounded-2xl text-sm sm:h-11 sm:w-auto">
                   {quizLoading ? (
                     <>
-                      <BrandedLoader variant="tiny" className="mr-2" />
-                      Saving quiz...
-                    </>
+                      <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Saving quiz...")}{" "}</>
                   ) : (
-                    "Save Quiz Questions"
+                    ui("Save Quiz Questions")
                   )}
                 </Button>
               </div>
@@ -787,7 +744,7 @@ const LectureTab = () => {
               <div className="rounded-2xl border border-border bg-accent p-4 dark:border-border/20 dark:bg-accent sm:rounded-3xl sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-foreground dark:text-foreground">
-                    {isProcessingVideo ? "Processing video" : "Uploading video"}
+                    {isProcessingVideo ? ui("Processing video") : ui("Uploading video")}
                   </p>
                   <span className="rounded-full bg-card/70 px-3 py-1 text-xs font-semibold text-muted-foreground dark:bg-card/60 dark:text-foreground">
                     {uploadProgress}%
@@ -798,8 +755,8 @@ const LectureTab = () => {
                   {isProcessingVideo && <BrandedLoader variant="tiny" />}
                   <p>
                     {isProcessingVideo
-                      ? "Upload reached 100%. Server is processing the video and sending it to Cloudinary..."
-                      : `${uploadProgress}% uploaded`}
+                      ? ui("Upload reached 100%. Server is processing the video and sending it to Cloudinary...")
+                      : ui("{0}% uploaded", uploadProgress)}
                   </p>
                 </div>
               </div>
@@ -808,18 +765,16 @@ const LectureTab = () => {
 
           <div className="space-y-6">
             <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
-              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground dark:text-muted-foreground">
-                Visibility status
-              </p>
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground dark:text-muted-foreground">{" "}{ui("Visibility status")}{" "}</p>
               <div className="rounded-2xl border border-border bg-muted p-4 dark:border-border dark:bg-secondary/60">
                 <div className="flex items-center gap-2 text-sm font-medium text-foreground dark:text-foreground">
             {isFree ? <PlayCircle size={16} /> : <Lock size={16} />}
-            {isFree ? "Visible in course preview" : "Locked until the course is purchased"}
+            {isFree ? ui("Visible in course preview") : ui("Locked until the course is purchased")}
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">
                   {isFree
-                    ? "Students can open this lecture from the course card before purchasing."
-                    : "Students will see a locked lecture in the course card until they buy the full course."}
+                    ? ui("Students can open this lecture from the course card before purchasing.")
+                    : ui("Students will see a locked lecture in the course card until they buy the full course.")}
                 </p>
               </div>
             </div>
@@ -827,13 +782,9 @@ const LectureTab = () => {
             {uploadVideInfo?.videoUrl && (
               <div className="rounded-2xl border border-border bg-card p-4 shadow-sm dark:border-border dark:bg-card/70 sm:rounded-3xl sm:p-5">
                 <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground dark:text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  Current lecture video
-                </div>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />{" "}{ui("Current lecture video")}{" "}</div>
                 {uploadVideInfo.publicId && uploadVideInfo.videoUrl.includes("/authenticated/") && !uploadVideInfo.previewUrl ? (
-                  <p className="mb-3 rounded-2xl bg-muted p-4 text-sm text-muted-foreground dark:bg-secondary dark:text-muted-foreground">
-                    Video uploaded. Save the lecture to preview it.
-                  </p>
+                  <p className="mb-3 rounded-2xl bg-muted p-4 text-sm text-muted-foreground dark:bg-secondary dark:text-muted-foreground">{" "}{ui("Video uploaded. Save the lecture to preview it.")}{" "}</p>
                 ) : (
                   <div className="mb-3 overflow-hidden rounded-2xl bg-black">
                     <ReactPlayer
@@ -848,8 +799,8 @@ const LectureTab = () => {
                 )}
                 <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                   {isYoutubeVideo
-                    ? "This lecture is linked from YouTube. You can replace it by pasting another link or uploading a file."
-                    : "A video is already attached to this lecture. You only need to upload again if you want to replace it."}
+                    ? ui("This lecture is linked from YouTube. You can replace it by pasting another link or uploading a file.")
+                    : ui("A video is already attached to this lecture. You only need to upload again if you want to replace it.")}
                 </p>
               </div>
             )}
@@ -857,9 +808,7 @@ const LectureTab = () => {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-border pt-5 dark:border-border sm:flex-row sm:items-center sm:justify-between sm:pt-6">
-          <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-            Save your changes after updating the title, visibility, uploaded video, or YouTube link.
-          </p>
+          <p className="text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Save your changes after updating the title, visibility, uploaded video, or YouTube link.")}{" "}</p>
           <Button
             disabled={isLoading || mediaProgress}
             onClick={editLectureHandler}
@@ -867,16 +816,12 @@ const LectureTab = () => {
           >
             {isLoading ? (
               <>
-                <BrandedLoader variant="tiny" className="mr-2" />
-                Please wait
-              </>
+                <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Please wait")}{" "}</>
             ) : mediaProgress ? (
               <>
-                <BrandedLoader variant="tiny" className="mr-2" />
-                Uploading video...
-              </>
+                <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Uploading video...")}{" "}</>
             ) : (
-              "Update Lecture"
+              ui("Update Lecture")
             )}
           </Button>
         </div>

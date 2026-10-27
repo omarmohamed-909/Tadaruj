@@ -1,3 +1,5 @@
+import { useUiText, useFeedbackText } from "@/components/useUiText";
+import { useLanguage } from "@/components/languageContext";
 import { Badge } from "@/components/ui/badge";
 import PageSkeleton from "@/components/PageSkeleton";
 import BrandedLoader from "@/components/BrandedLoader";
@@ -52,6 +54,9 @@ const resolveQuestionImageUrl = (question = {}) =>
   "";
 
 const CourseProgress = () => {
+  const { language } = useLanguage();
+  const feedback = useFeedbackText();
+  const ui = useUiText();
   const params = useParams();
   const [searchParams] = useSearchParams();
   const courseId = params.courseId;
@@ -137,7 +142,7 @@ const CourseProgress = () => {
     return <PageSkeleton variant="courseProgress" />;
   }
   if (isError) {
-    return <p>Faild to load course details</p>;
+    return <p>{ui("Faild to load course details")}</p>;
   }
 
   const { courseDetails, progress, completed } = data.data;
@@ -229,12 +234,12 @@ const CourseProgress = () => {
       if (allCompleted && !completed) {
         const response = await completeCourse(courseId).unwrap();
         await refetch();
-        toast.success(response?.message || "Course marked as completed.", {
+        toast.success(feedback(response?.message || ui("Course marked as completed."), ui("Course marked as completed.")), {
           id: `course-complete-${courseId}`,
         });
       }
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to update lecture progress.", {
+      toast.error(feedback(error?.data?.message || ui("Failed to update lecture progress."), ui("Failed to update lecture progress.")), {
         id: `course-progress-error-${courseId}`,
       });
     }
@@ -268,11 +273,11 @@ const CourseProgress = () => {
     try {
       const response = await completeCourse(courseId).unwrap();
       await refetch();
-      toast.success(response?.message || "Course marked as completed.", {
+      toast.success(feedback(response?.message || ui("Course marked as completed."), ui("Course marked as completed.")), {
         id: `course-complete-${courseId}`,
       });
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to mark course as complete.", {
+      toast.error(feedback(error?.data?.message || ui("Failed to mark course as complete."), ui("Failed to mark course as complete.")), {
         id: `course-complete-error-${courseId}`,
       });
     }
@@ -281,11 +286,11 @@ const CourseProgress = () => {
     try {
       const response = await incompleteCourse(courseId).unwrap();
       await refetch();
-      toast.success(response?.message || "Course marked as incomplete.", {
+      toast.success(feedback(response?.message || ui("Course marked as incomplete."), ui("Course marked as incomplete.")), {
         id: `course-incomplete-${courseId}`,
       });
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to mark course as incomplete.", {
+      toast.error(feedback(error?.data?.message || ui("Failed to mark course as incomplete."), ui("Failed to mark course as incomplete.")), {
         id: `course-incomplete-error-${courseId}`,
       });
     }
@@ -305,9 +310,9 @@ const CourseProgress = () => {
         text: normalizedComment,
       }).unwrap();
       setCommentText("");
-      toast.success(response?.message || "Comment added successfully.");
+      toast.success(feedback(response?.message || ui("Comment added successfully."), ui("Comment added successfully.")));
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to add comment.");
+      toast.error(feedback(error?.data?.message || ui("Failed to add comment."), ui("Failed to add comment.")));
     }
   };
 
@@ -331,9 +336,9 @@ const CourseProgress = () => {
         [parentCommentId]: "",
       }));
       setActiveReplyFor(null);
-      toast.success(response?.message || "Reply added successfully.");
+      toast.success(feedback(response?.message || ui("Reply added successfully."), ui("Reply added successfully.")));
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to add reply.");
+      toast.error(feedback(error?.data?.message || ui("Failed to add reply."), ui("Failed to add reply.")));
     }
   };
 
@@ -348,9 +353,9 @@ const CourseProgress = () => {
         lectureId: activeLecture._id,
         commentId,
       }).unwrap();
-      toast.success(response?.message || "Comment deleted successfully.");
+      toast.success(feedback(response?.message || ui("Comment deleted successfully."), ui("Comment deleted successfully.")));
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to delete comment.");
+      toast.error(feedback(error?.data?.message || ui("Failed to delete comment."), ui("Failed to delete comment.")));
     }
   };
 
@@ -366,9 +371,9 @@ const CourseProgress = () => {
         commentId,
       }).unwrap();
 
-      toast.success(response?.message || "Comment pin status updated.");
+      toast.success(feedback(response?.message || ui("Comment pin status updated."), ui("Comment pin status updated.")));
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to update pinned comment.");
+      toast.error(feedback(error?.data?.message || ui("Failed to update pinned comment."), ui("Failed to update pinned comment.")));
     }
   };
 
@@ -380,7 +385,7 @@ const CourseProgress = () => {
     const isNested = depth > 0;
     const normalizedDepth = Math.min(depth, 6);
     const depthOffset = normalizedDepth * 16;
-    const commenterName = comment.userId?.name || "User";
+    const commenterName = comment.userId?.name || ui("User");
     const commenterInitials = commenterName
       .split(" ")
       .map((part) => part[0])
@@ -435,15 +440,13 @@ const CourseProgress = () => {
                     {commenterName}
                   </p>
                   {comment.isPinned && !comment.parentCommentId && (
-                    <Badge className="h-5 rounded-full bg-amber-100 px-2 text-[10px] font-bold uppercase tracking-wide text-amber-700 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-300">
-                      Pinned
-                    </Badge>
+                    <Badge className="h-5 rounded-full bg-amber-100 px-2 text-[10px] font-bold uppercase tracking-wide text-amber-700 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-300">{" "}{ui("Pinned")}{" "}</Badge>
                   )}
                 </div>
                 <p
                   className={`${isNested ? "mt-0.5 text-[11px]" : "mt-1 text-xs"} text-muted-foreground `}
                 >
-                  {new Date(comment.createdAt).toLocaleString()}
+                  {new Date(comment.createdAt).toLocaleString(language === "ar" ? "ar-EG" : "en-GB")}
                 </p>
               </div>
             </div>
@@ -456,7 +459,7 @@ const CourseProgress = () => {
                   disabled={isPinningComment}
                   onClick={() => handleTogglePinnedComment(comment._id)}
                   className="h-9 w-9 rounded-xl text-muted-foreground hover:text-amber-600 dark:hover:text-amber-300"
-                  title={comment.isPinned ? "Unpin comment" : "Pin comment"}
+                  title={comment.isPinned ? ui("Unpin comment") : ui("Pin comment")}
                 >
                   {comment.isPinned ? (
                     <PinOff className="h-4 w-4" />
@@ -500,9 +503,7 @@ const CourseProgress = () => {
               }
               className="h-8 rounded-xl px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-primary"
             >
-              <CornerDownRight className="mr-1.5 h-3.5 w-3.5" />
-              Reply
-            </Button>
+              <CornerDownRight className="mr-1.5 h-3.5 w-3.5" />{" "}{ui("Reply")}{" "}</Button>
           </div>
 
           {isReplying && (
@@ -515,7 +516,7 @@ const CourseProgress = () => {
                     [comment._id]: event.target.value,
                   }))
                 }
-                placeholder={`Reply to ${commenterName}`}
+                placeholder={ui("Reply to {0}", commenterName)}
                 className="min-h-20 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none transition focus:border-border focus:ring-2 focus:ring-ring"
               />
               <div className="mt-2 flex justify-end gap-2">
@@ -524,9 +525,7 @@ const CourseProgress = () => {
                   variant="outline"
                   className="h-8 rounded-xl px-3 text-xs"
                   onClick={() => setActiveReplyFor(null)}
-                >
-                  Cancel
-                </Button>
+                >{" "}{ui("Cancel")}{" "}</Button>
                 <Button
                   type="button"
                   className="h-8 rounded-xl px-3 text-xs"
@@ -536,7 +535,7 @@ const CourseProgress = () => {
                   }
                   onClick={() => handleAddReply(comment._id)}
                 >
-                  {isAddingComment ? "Posting..." : "Post Reply"}
+                  {isAddingComment ? "Posting..." : ui("Post Reply")}
                 </Button>
               </div>
             </div>
@@ -567,7 +566,7 @@ const CourseProgress = () => {
     }
 
     if (answeredQuizQuestionsCount !== totalQuizQuestions) {
-      toast.error("Please answer all quiz questions first.");
+      toast.error(ui("Please answer all quiz questions first."));
       return;
     }
 
@@ -591,11 +590,11 @@ const CourseProgress = () => {
 
       if (typeof response?.remainingAttempts === "number") {
         toast.success(
-          `Quiz submitted. Remaining attempts: ${response.remainingAttempts}`
+          ui("Quiz submitted. Remaining attempts: {0}", response.remainingAttempts)
         );
       }
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to submit quiz result.");
+      toast.error(feedback(error?.data?.message || ui("Failed to submit quiz result."), ui("Failed to submit quiz result.")));
     }
   };
 
@@ -606,20 +605,17 @@ const CourseProgress = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-4 w-4 text-primary" />
-          <h4 className="text-base font-semibold text-foreground">
-            Comments
-          </h4>
+          <h4 className="text-base font-semibold text-foreground">{" "}{ui("Comments")}{" "}</h4>
         </div>
         <Badge variant="outline" className="rounded-full border-border bg-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-          {topLevelComments.length} threads
-        </Badge>
+          {topLevelComments.length}{" "}{ui("threads")}{" "}</Badge>
       </div>
 
       <div className="mt-4 flex flex-col gap-3">
         <textarea
           value={commentText}
           onChange={(event) => setCommentText(event.target.value)}
-          placeholder="Write a comment about this lecture"
+          placeholder={ui("Write a comment about this lecture")}
           className="min-h-24 w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none transition focus:border-border focus:ring-2 focus:ring-ring"
         />
         <div className="flex justify-end">
@@ -629,7 +625,7 @@ const CourseProgress = () => {
             className="rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Send className="mr-2 h-4 w-4" />
-            {isAddingComment ? "Posting..." : "Post Comment"}
+            {isAddingComment ? "Posting..." : ui("Post Comment")}
           </Button>
         </div>
       </div>
@@ -638,9 +634,7 @@ const CourseProgress = () => {
         {commentsLoading ? (
           <BrandedLoader variant="inline" className="py-2" />
         ) : comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No comments yet. Start the discussion for this lecture.
-          </p>
+          <p className="text-sm text-muted-foreground">{" "}{ui("No comments yet. Start the discussion for this lecture.")}{" "}</p>
         ) : (
           topLevelComments.map((comment) => renderCommentNode(comment))
         )}
@@ -654,19 +648,15 @@ const CourseProgress = () => {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2.5">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-wide">
-                Course Progress
-              </Badge>
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-wide">{" "}{ui("Course Progress")}{" "}</Badge>
               {completed && (
-                <Badge className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300">
-                  Completed
-                </Badge>
+                <Badge className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-300">{" "}{ui("Completed")}{" "}</Badge>
               )}
             </div>
             <h1 className="text-2xl font-bold leading-tight sm:text-2xl md:text-3xl">{courseTitle}</h1>
             <div className="max-w-xl space-y-2">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{completedLecturesCount} of {courseDetails.lectures.length} lectures completed</span>
+                <span>{completedLecturesCount}{" "}{ui("of")}{" "}{courseDetails.lectures.length}{" "}{ui("lectures completed")}</span>
                 <span className="font-semibold">{progressValue}%</span>
               </div>
               <Progress value={progressValue} className="h-2" />
@@ -676,9 +666,8 @@ const CourseProgress = () => {
             <div className="flex items-center justify-center gap-2 rounded-xl border border-border bg-muted px-4 py-2.5 text-muted-foreground sm:justify-start">
               <PlayCircle className="h-4 w-4 text-muted-foreground" />
               <div className="text-center sm:text-left">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Now Playing</p>
-                <p className="text-sm font-semibold text-foreground">
-                  Lecture {activeLectureIndex + 1 > 0 ? activeLectureIndex + 1 : 1}
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{ui("Now Playing")}</p>
+                <p className="text-sm font-semibold text-foreground">{" "}{ui("Lecture")}{" "}{activeLectureIndex + 1 > 0 ? activeLectureIndex + 1 : 1}
                 </p>
               </div>
             </div>
@@ -686,7 +675,7 @@ const CourseProgress = () => {
             <Button
               onClick={completed ? handleInCompleteCourse : handleCompleteCourse}
               variant={completed ? "outline" : "default"}
-              title={!completed && !canComplete ? "Watch all lectures at least once first" : ""}
+              title={!completed && !canComplete ? ui("Watch all lectures at least once first") : ""}
               className={`hidden h-11 w-full rounded-xl px-5 text-sm font-semibold shadow-sm transition sm:inline-flex sm:min-w-44 sm:w-auto ${
                 completed
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
@@ -699,17 +688,17 @@ const CourseProgress = () => {
               {completed ? (
                 <div className="flex items-center">
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  <span>Completed</span>
+                  <span>{ui("Completed")}</span>
                 </div>
               ) : (
                 <div className="flex items-center">
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  <span>Complete Course</span>
+                  <span>{ui("Complete Course")}</span>
                 </div>
               )}
             </Button>
             {!completed && !canComplete && (
-              <p className="mt-2 hidden text-center text-xs text-muted-foreground sm:block sm:text-left">Watch all lectures once to unlock</p>
+              <p className="mt-2 hidden text-center text-xs text-muted-foreground sm:block sm:text-left">{ui("Watch all lectures once to unlock")}</p>
             )}
             </div>
           </div>
@@ -761,19 +750,14 @@ const CourseProgress = () => {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <ListChecks className="h-4 w-4 text-primary" />
-                    <h4 className="text-base font-semibold text-foreground">
-                      Lecture Quiz
-                    </h4>
+                    <h4 className="text-base font-semibold text-foreground">{" "}{ui("Lecture Quiz")}{" "}</h4>
                   </div>
                   <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">
-                    {totalQuizQuestions} questions
-                  </Badge>
+                    {totalQuizQuestions}{" "}{ui("questions")}{" "}</Badge>
                 </div>
 
                 {totalQuizQuestions === 0 ? (
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    No quiz questions were added to this lecture yet.
-                  </p>
+                  <p className="mt-3 text-sm text-muted-foreground">{" "}{ui("No quiz questions were added to this lecture yet.")}{" "}</p>
                 ) : (
                   <div className="mt-4 space-y-4">
                     {lectureQuizQuestions.map((question, questionIndex) => {
@@ -792,7 +776,7 @@ const CourseProgress = () => {
                           <div className="mt-3 overflow-hidden rounded-xl border border-border bg-card">
                             <img
                               src={secureMediaUrl(questionImageUrl)}
-                              alt={`Question ${questionIndex + 1}`}
+                              alt={ui("Question {0}", questionIndex + 1)}
                               className="max-h-80 w-full object-contain"
                             />
                           </div>
@@ -826,8 +810,7 @@ const CourseProgress = () => {
                     })}
 
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-sm text-muted-foreground">
-                        Answered {answeredQuizQuestionsCount} / {totalQuizQuestions}
+                      <p className="text-sm text-muted-foreground">{" "}{ui("Answered")}{" "}{answeredQuizQuestionsCount} / {totalQuizQuestions}
                       </p>
                       <Button
                         type="button"
@@ -835,13 +818,12 @@ const CourseProgress = () => {
                         className="rounded-2xl"
                         disabled={isSubmittingQuizResult}
                       >
-                        {isSubmittingQuizResult ? "Submitting..." : "Check Answers"}
+                        {isSubmittingQuizResult ? "Submitting..." : ui("Check Answers")}
                       </Button>
                     </div>
 
                     {showQuizResult && (
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/30 dark:text-emerald-300">
-                        Your score: {quizResultScore} / {totalQuizQuestions}
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/30 dark:text-emerald-300">{" "}{ui("Your score:")}{" "}{quizResultScore} / {totalQuizQuestions}
                       </div>
                     )}
                   </div>
@@ -850,54 +832,46 @@ const CourseProgress = () => {
             )}
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Current Lecture
-                </p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{" "}{ui("Current Lecture")}{" "}</p>
                 <h3 className="mt-1 text-lg font-semibold text-foreground sm:text-xl">
-                  {`Lecture ${activeLectureIndex + 1 > 0 ? activeLectureIndex + 1 : 1}: ${
-                    activeLecture?.lectureTitle || "No lecture selected"
-                  }`}
+                  {ui("Lecture {0}: {1}", activeLectureIndex + 1 > 0 ? activeLectureIndex + 1 : 1, activeLecture?.lectureTitle || ui("No lecture selected"))}
                 </h3>
               </div>
               <Badge className="w-fit rounded-full bg-muted text-muted-foreground hover:bg-muted">
                 {contentViewMode === "quiz" ? (
                   <>
-                    <ListChecks className="mr-1 h-4 w-4" /> Quiz Mode
-                  </>
+                    <ListChecks className="mr-1 h-4 w-4" />{" "}{ui("Quiz Mode")}{" "}</>
                 ) : (
                   <>
-                    <PlayCircle className="mr-1 h-4 w-4" /> Watching
-                  </>
+                    <PlayCircle className="mr-1 h-4 w-4" />{" "}{ui("Watching")}{" "}</>
                 )}
               </Badge>
             </div>
 
             <Tabs defaultValue="overview" className="mt-5">
               <TabsList className="w-full sm:w-auto">
-                <TabsTrigger value="overview" className="flex-1 sm:flex-none">Overview</TabsTrigger>
-                <TabsTrigger value="resources" className="flex-1 sm:flex-none">Resources</TabsTrigger>
-                <TabsTrigger value="instructor" className="flex-1 sm:flex-none">Instructor</TabsTrigger>
+                <TabsTrigger value="overview" className="flex-1 sm:flex-none">{ui("Overview")}</TabsTrigger>
+                <TabsTrigger value="resources" className="flex-1 sm:flex-none">{ui("Resources")}</TabsTrigger>
+                <TabsTrigger value="instructor" className="flex-1 sm:flex-none">{ui("Instructor")}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="mt-4">
                 <div className="rounded-2xl border border-border bg-muted p-4">
-                  <h4 className="text-sm font-semibold text-foreground">Lecture Description</h4>
+                  <h4 className="text-sm font-semibold text-foreground">{ui("Lecture Description")}</h4>
                   {sanitizedDescription ? (
                     <div
                       className="mt-2 text-sm leading-relaxed text-muted-foreground"
                       dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                     />
                   ) : (
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                      No description has been added for this lecture yet.
-                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{" "}{ui("No description has been added for this lecture yet.")}{" "}</p>
                   )}
                 </div>
               </TabsContent>
 
               <TabsContent value="resources" className="mt-4">
                 <div className="rounded-2xl border border-border bg-muted p-4">
-                  <h4 className="text-sm font-semibold text-foreground">Downloadable Attachments</h4>
+                  <h4 className="text-sm font-semibold text-foreground">{ui("Downloadable Attachments")}</h4>
                   {activeLecture?.attachmentUrl ? (
                     <ul className="mt-3 space-y-2">
                       <li className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5">
@@ -908,15 +882,13 @@ const CourseProgress = () => {
                           rel="noopener noreferrer"
                           className="flex-1 text-sm text-muted-foreground hover:underline"
                         >
-                          {activeLecture.lectureTitle || "Download Lecture Notes"}
+                          {activeLecture.lectureTitle || ui("Download Lecture Notes")}
                         </a>
                         <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
                       </li>
                     </ul>
                   ) : (
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      No attachments available for this lecture.
-                    </p>
+                    <p className="mt-3 text-sm text-muted-foreground">{" "}{ui("No attachments available for this lecture.")}{" "}</p>
                   )}
                 </div>
               </TabsContent>
@@ -925,13 +897,11 @@ const CourseProgress = () => {
                 <div className="rounded-2xl border border-border bg-muted p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">
-                      {courseDetails?.creator?.name || "Unknown Instructor"}
+                      {courseDetails?.creator?.name || ui("Unknown Instructor")}
                     </span>
                     {courseDetails?.creator?.emailVerified && (
                       <Badge className="flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-primary hover:bg-accent">
-                        <BadgeCheck className="h-3.5 w-3.5" />
-                        Verified
-                      </Badge>
+                        <BadgeCheck className="h-3.5 w-3.5" />{" "}{ui("Verified")}{" "}</Badge>
                     )}
                   </div>
                   <a
@@ -955,14 +925,11 @@ const CourseProgress = () => {
             <div className="border-b border-border bg-card p-4 md:p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground">Course Lectures</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Choose a lecture to continue.
-                  </p>
+                  <h2 className="text-xl font-semibold text-foreground">{ui("Course Lectures")}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{" "}{ui("Choose a lecture to continue.")}{" "}</p>
                 </div>
                 <Badge variant="outline" className="rounded-full px-3 py-1">
-                  {courseDetails.lectures.length} total
-                </Badge>
+                  {courseDetails.lectures.length}{" "}{ui("total")}{" "}</Badge>
               </div>
             </div>
 
@@ -1010,7 +977,7 @@ const CourseProgress = () => {
 
                       {/* Quiz Indicator (Only if not active, to save space) */}
                       {!isActive && hasQuiz && (
-                        <div className="shrink-0 text-muted-foreground" title="Contains Quiz">
+                        <div className="shrink-0 text-muted-foreground" title={ui("Contains Quiz")}>
                           <ListChecks size={16} />
                         </div>
                       )}
@@ -1027,8 +994,7 @@ const CourseProgress = () => {
                               : "border border-border bg-card text-muted-foreground hover:bg-muted   "
                           }`}
                         >
-                          <PlayCircle className="h-4 w-4" /> Video
-                        </button>
+                          <PlayCircle className="h-4 w-4" />{" "}{ui("Video")}{" "}</button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleOpenLectureQuiz(lecture); }}
                           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition ${
@@ -1037,7 +1003,7 @@ const CourseProgress = () => {
                               : "border border-border bg-card text-muted-foreground hover:bg-muted   "
                           }`}
                         >
-                          <ListChecks className="h-4 w-4" /> Quiz ({lecture.quizQuestions.length})
+                          <ListChecks className="h-4 w-4" />{" "}{ui("Quiz (")}{lecture.quizQuestions.length})
                         </button>
                       </div>
                     )}
@@ -1056,7 +1022,7 @@ const CourseProgress = () => {
           <Button
             onClick={completed ? handleInCompleteCourse : handleCompleteCourse}
             variant={completed ? "outline" : "default"}
-            title={!completed && !allVideosWatchedAtLeastOnce ? "Watch all lectures at least once first" : ""}
+            title={!completed && !allVideosWatchedAtLeastOnce ? ui("Watch all lectures at least once first") : ""}
             className={`h-11 w-full rounded-xl px-5 text-sm font-semibold shadow-sm transition sm:hidden ${
               completed
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
@@ -1069,17 +1035,17 @@ const CourseProgress = () => {
             {completed ? (
               <div className="flex items-center">
                 <CheckCircle className="mr-2 h-4 w-4" />
-                <span>Completed</span>
+                <span>{ui("Completed")}</span>
               </div>
             ) : (
               <div className="flex items-center">
                 <CheckCircle className="mr-2 h-4 w-4" />
-                <span>Complete Course</span>
+                <span>{ui("Complete Course")}</span>
               </div>
             )}
           </Button>
           {!completed && !canComplete && (
-            <p className="mt-2 text-center text-xs text-muted-foreground sm:text-left sm:hidden">Watch all lectures once to unlock</p>
+            <p className="mt-2 text-center text-xs text-muted-foreground sm:text-left sm:hidden">{ui("Watch all lectures once to unlock")}</p>
           )}
           </div>
           {commentsSection}

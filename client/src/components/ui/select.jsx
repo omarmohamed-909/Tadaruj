@@ -3,11 +3,13 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/components/languageContext"
 
 function Select({
   ...props
 }) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />;
+  const { language = "en" } = useLanguage() ?? {};
+  return <SelectPrimitive.Root data-slot="select" dir={language === "ar" ? "rtl" : "ltr"} {...props} />;
 }
 
 function SelectGroup({

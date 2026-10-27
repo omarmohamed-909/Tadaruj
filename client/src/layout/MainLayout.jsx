@@ -3,7 +3,7 @@ import Navbar from '@/components/Navbar'
 import AcademyTheme from '@/components/AcademyTheme'
 import { usesAcademyTheme } from '@/lib/academyTheme'
 import React from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useMatches } from 'react-router-dom'
 
 const ScrollToTopOnRouteChange = () => {
   const { pathname, search } = useLocation();
@@ -17,11 +17,12 @@ const ScrollToTopOnRouteChange = () => {
 
 const MainLayout = () => {
   const { pathname } = useLocation();
+  const isNotFound = useMatches().some((match) => match.id === "not-found");
   const hideFooter = pathname === "/login";
 
   return (
     <div className='flex flex-col min-h-screen'>
-        <AcademyTheme enabled={usesAcademyTheme(pathname)} />
+        <AcademyTheme enabled={isNotFound || usesAcademyTheme(pathname)} />
         <ScrollToTopOnRouteChange />
         <Navbar/>
         <div className='flex-1 mt-16'>

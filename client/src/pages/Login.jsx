@@ -27,8 +27,10 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/components/languageContext";
+import { useFeedbackText } from "@/components/useUiText";
 
 const Login = () => {
+  const feedback = useFeedbackText();
   const { t } = useLanguage();
   const [signupInput, setSignupInput] = useState({
     name: "",
@@ -105,19 +107,19 @@ const Login = () => {
   };
   useEffect(() => {
     if (registerIsSuccess && registerData) {
-      toast.success(registerData.message || t("signupSuccess"));
+      toast.success(feedback(registerData.message, t("signupSuccess")));
       navigate(`/verify-email-notice?email=${encodeURIComponent(registerData.email || signupInput.email)}`, { replace: true, state: { verificationPath: registerData.verificationPath, emailSent: registerData.emailSent } });
     }
     if (registerError) {
-      toast.error(registerError.data?.message || t("signupFailed"));
+      toast.error(feedback(registerError.data?.message, t("signupFailed")));
     }
     if (loginIsSuccess && loginData) {
-      toast.success(loginData.message || t("loginSuccess"));
+      toast.success(feedback(loginData.message, t("loginSuccess")));
       navigate(returnTo, { replace: true });
     }
     if (loginError) {
       const errorMessage = loginError.data?.message || t("loginFailed");
-      toast.error(errorMessage);
+      toast.error(feedback(errorMessage, t("loginFailed")));
       if (loginError.status === 403 && /verify your email/i.test(errorMessage)) {
         navigate(`/verify-email-notice?email=${encodeURIComponent(loginInput.email)}`);
       }
@@ -134,6 +136,7 @@ const Login = () => {
     loginInput.email,
     signupInput.email,
     t,
+    feedback,
   ]);
 
   return (

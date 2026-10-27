@@ -1,3 +1,4 @@
+import { useUiText, useFeedbackText } from "@/components/useUiText";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PageSkeleton from "@/components/PageSkeleton";
 import { useGetAdminUsersQuery } from "@/features/api/authApi";
@@ -26,6 +27,8 @@ import {
 } from "recharts";
 
 const Dashboard = () => {
+  const ui = useUiText();
+  const feedback = useFeedbackText();
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window === "undefined" ? true : window.innerWidth >= 640
   );
@@ -71,8 +74,8 @@ const Dashboard = () => {
       coursesError?.data?.message ||
       usersError?.data?.message ||
       purchasesError?.data?.message ||
-      "Failed to load dashboard data";
-    return <h1 className="text-red-500">{message}</h1>;
+      ui("Failed to load dashboard data");
+    return <h1 className="text-red-500">{feedback(message, ui("Failed to load dashboard data"))}</h1>;
   }
 
   const courses = coursesData?.courses ?? [];
@@ -116,12 +119,12 @@ const Dashboard = () => {
       name:
         course.courseTitle?.length > 16
           ? `${course.courseTitle.slice(0, 16)}...`
-          : course.courseTitle || "Untitled",
+          : course.courseTitle || ui("Untitled"),
       price: Number(course.coursePrice || 0),
     }));
 
   const creatorStatsMap = courses.reduce((acc, course) => {
-    const creatorName = course.creator?.name || "Unknown";
+    const creatorName = course.creator?.name || ui("Unknown");
     acc[creatorName] = (acc[creatorName] || 0) + 1;
     return acc;
   }, {});
@@ -148,49 +151,49 @@ const Dashboard = () => {
 
   const statCards = [
     {
-      title: "Total Courses",
+      title: ui("Total Courses"),
       value: totalCourses,
-      subtitle: "Courses in your catalog",
+      subtitle: ui("Courses in your catalog"),
       icon: BookOpen,
       accent: "text-blue-600",
       iconBg: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
     },
     {
-      title: "Published Courses",
+      title: ui("Published Courses"),
       value: publishedCourses,
-      subtitle: `${draftCourses} draft courses pending publish`,
+      subtitle: ui("{0} draft courses pending publish", draftCourses),
       icon: ChartColumnIncreasing,
       accent: "text-emerald-600",
       iconBg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
     },
     {
-      title: "Confirmed Course Sales",
-      value: `${totalCollectedRevenue} EGP`,
-      subtitle: `${totalPurchases} confirmed orders; direct payments go to instructors`,
+      title: ui("Confirmed Course Sales"),
+      value: ui("{0} EGP", totalCollectedRevenue),
+      subtitle: ui("{0} confirmed orders; direct payments go to instructors", totalPurchases),
       icon: CircleDollarSign,
       accent: "text-cyan-600",
       iconBg: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
     },
     {
-      title: "Average Course Price",
-      value: `${avgCoursePrice} EGP`,
-      subtitle: `${paidCourses} paid / ${freeCourses} free`,
+      title: ui("Average Course Price"),
+      value: ui("{0} EGP", avgCoursePrice),
+      subtitle: ui("{0} paid / {1} free", paidCourses, freeCourses),
       icon: BadgeDollarSign,
       accent: "text-amber-600",
       iconBg: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
     },
     {
-      title: "Platform Users",
+      title: ui("Platform Users"),
       value: totalUsers,
-      subtitle: `${totalStudents} students, ${totalInstructors} instructors`,
+      subtitle: ui("{0} students, {1} instructors", totalStudents, totalInstructors),
       icon: Users,
       accent: "text-indigo-600",
       iconBg: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
     },
     {
-      title: "Total Enrollments",
+      title: ui("Total Enrollments"),
       value: totalEnrollments,
-      subtitle: "Manual + paid enrollments combined",
+      subtitle: ui("Manual + paid enrollments combined"),
       icon: GraduationCap,
       accent: "text-rose-600",
       iconBg: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
@@ -202,25 +205,15 @@ const Dashboard = () => {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <div className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-              Dashboard Overview
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 sm:text-3xl">
-              Complete LMS control center
-            </h1>
-            <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">
-              Track courses, users, purchases, revenue, and recent activity from one place.
-            </p>
+            <div className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-900 dark:text-slate-200">{" "}{ui("Dashboard Overview")}{" "}</div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 sm:text-3xl">{" "}{ui("Complete LMS control center")}{" "}</h1>
+            <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-300">{" "}{ui("Track courses, users, purchases, revenue, and recent activity from one place.")}{" "}</p>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-            Updated from live API sources
-          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{" "}{ui("Updated from live API sources")}{" "}</div>
         </div>
 
         {(isCoursesError || isUsersError || isPurchasesError) && (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">
-            Some dashboard sections are partially unavailable right now, but available data is still displayed.
-          </div>
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">{" "}{ui("Some dashboard sections are partially unavailable right now, but available data is still displayed.")}{" "}</div>
         )}
       </div>
 
@@ -250,30 +243,25 @@ const Dashboard = () => {
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="border-slate-200 shadow-sm dark:border-slate-800">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Course Prices Trend
-            </CardTitle>
+            <CardTitle className="text-xl font-semibold text-slate-800 dark:text-slate-100">{" "}{ui("Course Prices Trend")}{" "}</CardTitle>
           </CardHeader>
           <CardContent>
             {coursePriceChartData.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">No courses available yet.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{ui("No courses available yet.")}</p>
             ) : (
               <>
                 <div className="space-y-2 sm:hidden">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Top priced courses (mobile quick view)
-                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{" "}{ui("Top priced courses (mobile quick view)")}{" "}</p>
                   {topPricedCourses.map((course) => (
                     <div
                       key={course._id}
                       className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
                     >
                       <p className="max-w-[72%] truncate text-sm font-medium text-slate-800 dark:text-slate-100">
-                        {course.courseTitle || "Untitled"}
+                        {course.courseTitle || ui("Untitled")}
                       </p>
                       <p className="text-sm font-bold text-blue-600 dark:text-cyan-300">
-                        {Number(course.coursePrice || 0)} EGP
-                      </p>
+                        {Number(course.coursePrice || 0)}{" "}{ui("EGP")}{" "}</p>
                     </div>
                   ))}
                 </div>
@@ -293,7 +281,7 @@ const Dashboard = () => {
                       />
                       <YAxis stroke="#64748b" />
                       <Tooltip
-                        formatter={(value) => [`${value} EGP`, "Price"]}
+                        formatter={(value) => [ui("{0} EGP", value), ui("Price")]}
                         contentStyle={{
                           borderRadius: 16,
                           border: "1px solid #e2e8f0",
@@ -319,19 +307,15 @@ const Dashboard = () => {
 
         <Card className="border-slate-200 shadow-sm dark:border-slate-800">
           <CardHeader>
-            <CardTitle className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Courses Per Instructor
-            </CardTitle>
+            <CardTitle className="text-xl font-semibold text-slate-800 dark:text-slate-100">{" "}{ui("Courses Per Instructor")}{" "}</CardTitle>
           </CardHeader>
           <CardContent>
             {creatorDistributionData.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">No creator data available yet.</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{ui("No creator data available yet.")}</p>
             ) : (
               <>
                 <div className="space-y-2 sm:hidden">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Instructor contribution (mobile quick view)
-                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{" "}{ui("Instructor contribution (mobile quick view)")}{" "}</p>
                   {topCreators.map((creator) => (
                     <div
                       key={creator.name}
@@ -342,8 +326,7 @@ const Dashboard = () => {
                           {creator.name}
                         </p>
                         <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                          {creator.count} courses
-                        </p>
+                          {creator.count}{" "}{ui("courses")}{" "}</p>
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700">
                         <div
@@ -363,7 +346,7 @@ const Dashboard = () => {
                       <XAxis dataKey="name" stroke="#64748b" interval={0} />
                       <YAxis stroke="#64748b" allowDecimals={false} />
                       <Tooltip
-                        formatter={(value) => [`${value} courses`, "Catalog"]}
+                        formatter={(value) => [ui("{0} courses", value), ui("Catalog")]}
                         contentStyle={{
                           borderRadius: 16,
                           border: "1px solid #e2e8f0",
@@ -384,17 +367,12 @@ const Dashboard = () => {
       <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardContent className="flex flex-wrap items-center gap-4 p-4 text-sm text-slate-600 dark:text-slate-300">
           <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 dark:bg-slate-900">
-            <CalendarClock className="h-4 w-4" />
-            Last snapshot: {new Date().toLocaleString()}
+            <CalendarClock className="h-4 w-4" />{" "}{ui("Last snapshot:")}{" "}{new Date().toLocaleString()}
           </div>
           <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 dark:bg-slate-900">
-            <BookOpen className="h-4 w-4" />
-            Catalog value: {totalCourseCatalogValue} EGP
-          </div>
+            <BookOpen className="h-4 w-4" />{" "}{ui("Catalog value:")}{" "}{totalCourseCatalogValue}{" "}{ui("EGP")}{" "}</div>
           <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 dark:bg-slate-900">
-            <CircleDollarSign className="h-4 w-4" />
-            Confirmed course sales: {totalCollectedRevenue} EGP
-          </div>
+            <CircleDollarSign className="h-4 w-4" />{" "}{ui("Confirmed course sales:")}{" "}{totalCollectedRevenue}{" "}{ui("EGP")}{" "}</div>
         </CardContent>
       </Card>
     </div>

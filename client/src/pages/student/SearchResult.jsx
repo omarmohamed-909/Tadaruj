@@ -1,3 +1,4 @@
+import { useUiText } from "@/components/useUiText";
 import { Badge } from "@/components/ui/badge";
 import { secureMediaUrl } from "@/lib/secureMediaUrl";
 import { getCourseGradeLevel, getCourseSubject, getGradeLabel } from "@/lib/courseTaxonomy";
@@ -6,10 +7,11 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "@/components/languageContext";
 
 const SearchResult = ({ course }) => {
+  const ui = useUiText();
   const { t, language } = useLanguage();
   const priceLabel =
     typeof course?.coursePrice === "number" && course.coursePrice > 0
-      ? `${course.coursePrice} EGP`
+      ? ui("{0} EGP", course.coursePrice)
       : t("free");
 
   return (

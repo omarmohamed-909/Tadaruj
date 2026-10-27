@@ -1,3 +1,4 @@
+import { useUiText } from "@/components/useUiText";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,10 +10,11 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "@/components/languageContext";
 
 const Course = ({course}) => {
+  const ui = useUiText();
   const { t, language } = useLanguage();
   const priceLabel =
     typeof course?.coursePrice === "number" && course.coursePrice > 0
-      ? `${course.coursePrice} EGP`
+      ? ui("{0} EGP", course.coursePrice)
       : t("free");
 
   return (
@@ -43,8 +45,8 @@ const Course = ({course}) => {
         {getCourseGradeLevel(course) && <p className="text-xs font-medium text-muted-foreground">{getGradeLabel(getCourseGradeLevel(course), language)}</p>}
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8 ring-2 ring-border">
-            <AvatarImage src={ course?.creator?.photoUrl ||"/default-avatar.webp"} alt="creator avatar" />
-            <AvatarFallback>CN</AvatarFallback>
+            <AvatarImage src={ course?.creator?.photoUrl ||"/default-avatar.webp"} alt={ui("creator avatar")} />
+            <AvatarFallback>{course.creator?.name?.trim()?.charAt(0).toUpperCase() || "?"}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{t("instructor")}</p>

@@ -1,3 +1,5 @@
+import { useUiText, useFeedbackText } from "@/components/useUiText";
+import { useLanguage } from "@/components/languageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -36,6 +38,9 @@ import BrandedLoader from "@/components/BrandedLoader";
 import { toast } from "sonner";
 
 const QuizDashboard = () => {
+  const feedback = useFeedbackText();
+  const ui = useUiText();
+  const { language } = useLanguage();
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [selectedLectureId, setSelectedLectureId] = useState("all");
   const [expandedHistoryKey, setExpandedHistoryKey] = useState(null);
@@ -75,7 +80,7 @@ const QuizDashboard = () => {
   const getPerformanceGrade = (percent) => {
     if (percent >= 80) {
       return {
-        label: "Excellent",
+        label: ui("Excellent"),
         color: "text-emerald-700 dark:text-emerald-400",
         bar: "bg-emerald-500",
         pill: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
@@ -84,7 +89,7 @@ const QuizDashboard = () => {
 
     if (percent >= 50) {
       return {
-        label: "Good",
+        label: ui("Good"),
         color: "text-amber-700 dark:text-amber-400",
         bar: "bg-amber-500",
         pill: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
@@ -92,7 +97,7 @@ const QuizDashboard = () => {
     }
 
     return {
-      label: "Needs Work",
+      label: ui("Needs Work"),
       color: "text-red-700 dark:text-red-400",
       bar: "bg-red-500",
       pill: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
@@ -101,7 +106,7 @@ const QuizDashboard = () => {
 
   const formatSubmittedAt = (dateValue) =>
     dateValue
-      ? new Date(dateValue).toLocaleDateString("en-GB", {
+      ? new Date(dateValue).toLocaleDateString(language === "ar" ? "ar-EG" : "en-GB", {
           day: "2-digit",
           month: "short",
           year: "numeric",
@@ -112,36 +117,36 @@ const QuizDashboard = () => {
 
   const statCards = [
     {
-      title: "Total Attempts",
+      title: ui("Total Attempts"),
       value: totalAttempts,
-      subtitle: "All attempts across students",
+      subtitle: ui("All attempts across students"),
       icon: History,
       gradient: "from-primary to-primary/70",
       lightBg: "bg-accent dark:bg-accent/30",
       textColor: "text-accent-foreground dark:text-accent-foreground",
     },
     {
-      title: "Quiz Records",
+      title: ui("Quiz Records"),
       value: allResults.length,
-      subtitle: "Unique student x lecture records",
+      subtitle: ui("Unique student x lecture records"),
       icon: ClipboardList,
       gradient: "from-primary to-primary/70",
       lightBg: "bg-accent dark:bg-accent/30",
       textColor: "text-accent-foreground dark:text-accent-foreground",
     },
     {
-      title: "Unique Students",
+      title: ui("Unique Students"),
       value: uniqueStudents,
-      subtitle: "Students who took at least one quiz",
+      subtitle: ui("Students who took at least one quiz"),
       icon: Users,
       gradient: "from-amber-500 to-orange-500",
       lightBg: "bg-amber-50 dark:bg-amber-950/30",
       textColor: "text-amber-600 dark:text-amber-400",
     },
     {
-      title: "Average Score",
+      title: ui("Average Score"),
       value: `${avgPercentage}%`,
-      subtitle: "Latest percentage average",
+      subtitle: ui("Latest percentage average"),
       icon: Award,
       gradient: "from-emerald-500 to-teal-500",
       lightBg: "bg-emerald-50 dark:bg-emerald-950/30",
@@ -168,7 +173,7 @@ const QuizDashboard = () => {
         [resultId]: response?.history || [],
       }));
     } catch (error) {
-      toast.error(error?.data?.message || "Failed to load attempt history.");
+      toast.error(feedback(error?.data?.message || ui("Failed to load attempt history."), ui("Failed to load attempt history.")));
     }
   };
 
@@ -179,17 +184,15 @@ const QuizDashboard = () => {
         <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              {isAdmin ? "Admin panel" : "Instructor workspace"}
+              {isAdmin ? ui("Admin panel") : ui("Instructor workspace")}
             </p>
-            <h1 className="text-xl font-bold sm:text-3xl">Quiz Dashboard</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Monitor student performance across all quiz-enabled lectures.
-            </p>
+            <h1 className="text-xl font-bold sm:text-3xl">{ui("Quiz Dashboard")}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{" "}{ui("Monitor student performance across all quiz-enabled lectures.")}{" "}</p>
           </div>
           <div className="flex w-full shrink-0 items-center gap-2 rounded-xl bg-card/10 px-3 py-2 backdrop-blur-sm sm:w-auto sm:px-4 sm:py-2.5">
             <ClipboardList className="h-4 w-4 text-muted-foreground" />
             <span className="truncate text-sm font-medium text-foreground">
-              {selectedCourse ? selectedCourse.courseTitle : "No course selected"}
+              {selectedCourse ? selectedCourse.courseTitle : ui("No course selected")}
             </span>
           </div>
         </div>
@@ -201,9 +204,7 @@ const QuizDashboard = () => {
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="w-full sm:max-w-xs">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">
-            Course
-          </label>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">{" "}{ui("Course")}{" "}</label>
           <Select
             value={selectedCourseId}
             onValueChange={(value) => {
@@ -212,7 +213,7 @@ const QuizDashboard = () => {
             }}
           >
             <SelectTrigger className="h-10 rounded-xl border-border bg-card shadow-sm dark:border-border dark:bg-secondary">
-              <SelectValue placeholder={coursesLoading ? "Loading…" : "Select a course"} />
+              <SelectValue placeholder={coursesLoading ? ui("Loading…") : ui("Select a course")} />
             </SelectTrigger>
             <SelectContent>
               {courses.map((course) => (
@@ -228,15 +229,13 @@ const QuizDashboard = () => {
           <>
             <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
             <div className="w-full sm:max-w-xs">
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">
-                Lecture
-              </label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">{" "}{ui("Lecture")}{" "}</label>
               <Select value={selectedLectureId} onValueChange={setSelectedLectureId}>
                 <SelectTrigger className="h-10 rounded-xl border-border bg-card shadow-sm dark:border-border dark:bg-secondary">
-                  <SelectValue placeholder="All lectures" />
+                  <SelectValue placeholder={ui("All lectures")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Lectures</SelectItem>
+                  <SelectItem value="all">{ui("All Lectures")}</SelectItem>
                   {lectures
                     .filter((lec) => lec.totalQuestions > 0)
                     .map((lec) => (
@@ -257,12 +256,8 @@ const QuizDashboard = () => {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted dark:bg-secondary">
             <BookOpen className="h-8 w-8 text-muted-foreground" />
           </div>
-          <p className="text-base font-semibold text-muted-foreground dark:text-muted-foreground">
-            Select a course to get started
-          </p>
-          <p className="mt-1 max-w-xs text-sm text-muted-foreground dark:text-muted-foreground">
-            Choose one of your courses from the dropdown above to view student quiz results.
-          </p>
+          <p className="text-base font-semibold text-muted-foreground dark:text-muted-foreground">{" "}{ui("Select a course to get started")}{" "}</p>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Choose one of your courses from the dropdown above to view student quiz results.")}{" "}</p>
         </div>
       )}
 
@@ -270,7 +265,7 @@ const QuizDashboard = () => {
       {selectedCourseId && quizLoading && (
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted px-5 py-4 dark:border-border dark:bg-secondary/30">
           <BrandedLoader variant="inline" />
-          <span className="text-sm text-muted-foreground dark:text-muted-foreground">Loading quiz results…</span>
+          <span className="text-sm text-muted-foreground dark:text-muted-foreground">{ui("Loading quiz results…")}</span>
         </div>
       )}
 
@@ -307,8 +302,8 @@ const QuizDashboard = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">
                   {selectedLectureId === "all"
-                    ? "All Quiz Results"
-                    : `Results — ${lectures.find((l) => l._id === selectedLectureId)?.lectureTitle ?? ""}`}
+                    ? ui("All Quiz Results")
+                    : ui("Results — {0}", lectures.find((l) => l._id === selectedLectureId)?.lectureTitle ?? "")}
                 </CardTitle>
                 <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground dark:bg-secondary dark:text-muted-foreground">
                   {filteredResults.length} {filteredResults.length === 1 ? "entry" : "entries"}
@@ -321,12 +316,8 @@ const QuizDashboard = () => {
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted dark:bg-secondary">
                     <ClipboardList className="h-6 w-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm font-semibold text-muted-foreground dark:text-muted-foreground">
-                    No results yet
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground dark:text-muted-foreground">
-                    Students haven't submitted this quiz yet.
-                  </p>
+                  <p className="text-sm font-semibold text-muted-foreground dark:text-muted-foreground">{" "}{ui("No results yet")}{" "}</p>
+                  <p className="mt-1 text-xs text-muted-foreground dark:text-muted-foreground">{" "}{ui("Students haven't submitted this quiz yet.")}{" "}</p>
                 </div>
               ) : (
                 <>
@@ -355,7 +346,7 @@ const QuizDashboard = () => {
                               </Avatar>
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold text-foreground dark:text-foreground">
-                                  {result.userId?.name ?? "Unknown"}
+                                  {result.userId?.name ?? ui("Unknown")}
                                 </p>
                                 <p className="truncate text-xs text-muted-foreground dark:text-muted-foreground">
                                   {result.userId?.email ?? ""}
@@ -391,8 +382,7 @@ const QuizDashboard = () => {
                               className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-muted dark:bg-secondary dark:text-foreground dark:hover:bg-card"
                             >
                               <History className="h-3 w-3" />
-                              {attemptsCount} Attempts
-                              <ChevronDown
+                              {attemptsCount}{" "}{ui("Attempts")}{" "}<ChevronDown
                                 className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                               />
                             </button>
@@ -412,8 +402,7 @@ const QuizDashboard = () => {
                                       key={`${rowKey}-attempt-${index}`}
                                       className="rounded-lg border border-border bg-muted px-2.5 py-1.5 dark:border-border dark:bg-secondary"
                                     >
-                                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">
-                                        Attempt #{history.length - index}
+                                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">{" "}{ui("Attempt #")}{history.length - index}
                                       </p>
                                       <p className="mt-0.5 text-xs font-bold text-foreground dark:text-foreground">
                                         {attempt.score}/{attempt.totalQuestions}
@@ -422,9 +411,7 @@ const QuizDashboard = () => {
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-xs text-muted-foreground dark:text-muted-foreground">
-                                  No history found.
-                                </span>
+                                <span className="text-xs text-muted-foreground dark:text-muted-foreground">{" "}{ui("No history found.")}{" "}</span>
                               )}
                             </div>
                           )}
@@ -437,24 +424,12 @@ const QuizDashboard = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border bg-transparent hover:bg-transparent dark:border-border">
-                        <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Student
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Lecture
-                        </TableHead>
-                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Score
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Performance
-                        </TableHead>
-                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Attempts
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          Submitted
-                        </TableHead>
+                        <TableHead className="pl-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{" "}{ui("Student")}{" "}</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{" "}{ui("Lecture")}{" "}</TableHead>
+                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">{" "}{ui("Score")}{" "}</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{" "}{ui("Performance")}{" "}</TableHead>
+                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">{" "}{ui("Attempts")}{" "}</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{" "}{ui("Submitted")}{" "}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -483,7 +458,7 @@ const QuizDashboard = () => {
                                   </Avatar>
                                   <div>
                                     <p className="text-sm font-semibold text-foreground dark:text-foreground">
-                                      {result.userId?.name ?? "Unknown"}
+                                      {result.userId?.name ?? ui("Unknown")}
                                     </p>
                                     <p className="text-xs text-muted-foreground dark:text-muted-foreground">
                                       {result.userId?.email ?? ""}
@@ -566,8 +541,7 @@ const QuizDashboard = () => {
                                             key={`${rowKey}-attempt-${index}`}
                                             className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground dark:border-border dark:bg-secondary dark:text-muted-foreground"
                                           >
-                                            <strong className="font-semibold text-foreground dark:text-foreground">
-                                              Attempt {history.length - index}
+                                            <strong className="font-semibold text-foreground dark:text-foreground">{" "}{ui("Attempt")}{" "}{history.length - index}
                                             </strong>
                                             <span>
                                               {attempt.score}/{attempt.totalQuestions}
@@ -580,9 +554,7 @@ const QuizDashboard = () => {
                                         );
                                       })
                                     ) : (
-                                      <span className="text-xs text-muted-foreground dark:text-muted-foreground">
-                                        No history found.
-                                      </span>
+                                      <span className="text-xs text-muted-foreground dark:text-muted-foreground">{" "}{ui("No history found.")}{" "}</span>
                                     )}
                                   </div>
                                 </TableCell>

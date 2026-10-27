@@ -16,6 +16,9 @@ import PurcjhaseCourseProtectedRoute from "./components/PurchaseCourseProtectedR
 import { ThemeProvider } from "./components/ThemeProvider";
 import { LanguageProvider } from "./components/LanguageProvider";
 import LoadingSpinner from "./components/LoadingSpinner";
+import AppErrorBoundary from "./components/AppErrorBoundary";
+import RouteError from "./pages/RouteError";
+import NotFound from "./pages/NotFound";
 
 // Keep form, catalog and profile dependencies out of the landing-page download.
 const Login = lazy(() => import("./pages/Login"));
@@ -50,7 +53,9 @@ const appRouter = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout />,
+    errorElement: <RouteError />,
     children: [
+      { id: "not-found", path: "*", element: <NotFound /> },
       {
         path: "/",
         element: (
@@ -212,7 +217,7 @@ function App() {
     <main>
       <ThemeProvider>
         <LanguageProvider>
-         <Suspense fallback={<LoadingSpinner />}><RouterProvider router={appRouter} /></Suspense>
+         <AppErrorBoundary><Suspense fallback={<LoadingSpinner />}><RouterProvider router={appRouter} /></Suspense></AppErrorBoundary>
         </LanguageProvider>
       </ThemeProvider>
     </main>

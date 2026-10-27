@@ -1,3 +1,4 @@
+import { useUiText, useFeedbackText } from "@/components/useUiText";
 import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/PageSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,8 @@ import { useWorkspacePath } from "@/lib/useWorkspacePath";
 import Lecture from "./Lecture";
 
 const CreateLecture = () => {
+  const feedback = useFeedbackText();
+  const ui = useUiText();
   const [lectureTitle, setLectureTitle] = useState("");
   const params = useParams();
   const courseId = params.courseId;
@@ -41,21 +44,21 @@ const CreateLecture = () => {
   useEffect(() => {
     if (isSuccess) {
       refetch();
-      toast.success(data?.message);
+      toast.success(feedback(data?.message, ui("Changes saved.")));
       setLectureTitle("");
     }
     if (error) {
-      toast.error(error?.data?.message);
+      toast.error(feedback(error?.data?.message, ui("Something went wrong. Please try again.")));
     }
-  }, [isSuccess, error, data, refetch]);
+  }, [isSuccess, error, data, refetch, feedback, ui]);
 
   const reorderLectureHandler = async (lectureId, direction) => {
     try {
       const response = await reorderLecture({ courseId, lectureId, direction }).unwrap();
-      toast.success(response?.message);
+      toast.success(feedback(response?.message, ui("Changes saved.")));
       refetch();
     } catch (reorderError) {
-      toast.error(reorderError?.data?.message || "Failed to reorder lecture.");
+      toast.error(feedback(reorderError?.data?.message || ui("Failed to reorder lecture."), ui("Failed to reorder lecture.")));
     }
   };
 
@@ -64,29 +67,20 @@ const CreateLecture = () => {
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm dark:border-border dark:bg-card">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
-            <div className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:bg-secondary dark:text-foreground">
-              Lecture Management
-            </div>
-            <h1 className="text-2xl font-bold text-foreground dark:text-foreground">
-              Add and organize your course lectures
-            </h1>
-            <p className="max-w-2xl text-sm text-muted-foreground dark:text-muted-foreground">
-              Create a new lecture, then open it to upload its video or add a YouTube link, control preview access,
-              and manage what students can see before purchase.
-            </p>
+            <div className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:bg-secondary dark:text-foreground">{" "}{ui("Lecture Management")}{" "}</div>
+            <h1 className="text-2xl font-bold text-foreground dark:text-foreground">{" "}{ui("Add and organize your course lectures")}{" "}</h1>
+            <p className="max-w-2xl text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Create a new lecture, then open it to upload its video or add a YouTube link, control preview access, and manage what students can see before purchase.")}{" "}</p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:w-auto">
             <div className="rounded-xl border border-border bg-muted px-4 py-3 text-center dark:border-border dark:bg-secondary/70">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">Lectures</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">{ui("Lectures")}</p>
               <p className="mt-1 text-xl font-bold text-foreground dark:text-foreground">
                 {lectureData?.lectures?.length ?? 0}
               </p>
             </div>
             <div className="rounded-xl border border-border bg-muted px-4 py-3 text-center dark:border-border dark:bg-secondary/70">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">Course</p>
-              <p className="mt-1 text-sm font-semibold text-foreground dark:text-foreground">
-                Ready to edit
-              </p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">{ui("Course")}</p>
+              <p className="mt-1 text-sm font-semibold text-foreground dark:text-foreground">{" "}{ui("Ready to edit")}{" "}</p>
             </div>
           </div>
         </div>
@@ -94,17 +88,17 @@ const CreateLecture = () => {
 
       <Card className="border-border shadow-sm dark:border-border">
         <CardHeader>
-          <CardTitle className="text-xl">Create a new lecture</CardTitle>
+          <CardTitle className="text-xl">{ui("Create a new lecture")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div>
-            <Label>Lecture title</Label>
+            <Label>{ui("Lecture title")}</Label>
             <Input
               type="text"
               name="courseTitle"
               value={lectureTitle}
               onChange={(e) => setLectureTitle(e.target.value)}
-              placeholder="Example: Introduction to Docker"
+              placeholder={ui("Example: Introduction to Docker")}
               className="mt-2"
             />
           </div>
@@ -113,20 +107,14 @@ const CreateLecture = () => {
             <Button
               variant="outline"
               onClick={() => navigate(workspacePath(`/course/${courseId}`))}
-            >
-              Back to Course
-            </Button>
+            >{" "}{ui("Back to Course")}{" "}</Button>
             <Button disabled={isLoading || !lectureTitle.trim()} onClick={createLectureHandler}>
               {isLoading ? (
                 <>
-                  <BrandedLoader variant="tiny" className="mr-2" />
-                  Please wait
-                </>
+                  <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Please wait")}{" "}</>
               ) : (
                 <>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Create Lecture
-                </>
+                  <PlusCircle className="mr-2 h-4 w-4" />{" "}{ui("Create Lecture")}{" "}</>
               )}
             </Button>
           </div>
@@ -136,21 +124,17 @@ const CreateLecture = () => {
       <Card className="border-border shadow-sm dark:border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
-            <BookOpen className="h-5 w-5" />
-            Existing lectures
-          </CardTitle>
+            <BookOpen className="h-5 w-5" />{" "}{ui("Existing lectures")}{" "}</CardTitle>
         </CardHeader>
         <CardContent>
           {lectureLoading ? (
             <ListSkeleton items={5} />
           ) : lectureError ? (
-            <p className="text-sm text-red-600 dark:text-red-400">Failed to load lectures.</p>
+            <p className="text-sm text-red-600 dark:text-red-400">{ui("Failed to load lectures.")}</p>
           ) : lectureData.lectures.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-muted px-5 py-8 text-center dark:border-border dark:bg-secondary/50">
-              <p className="font-medium text-foreground dark:text-foreground">No lectures added yet</p>
-              <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">
-                Create your first lecture to start building the course structure.
-              </p>
+              <p className="font-medium text-foreground dark:text-foreground">{ui("No lectures added yet")}</p>
+              <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Create your first lecture to start building the course structure.")}{" "}</p>
             </div>
           ) : (
             <div className="space-y-3">

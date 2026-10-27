@@ -1,3 +1,4 @@
+import { useUiText, useFeedbackText } from "@/components/useUiText";
 import Course from "./Course";
 import BrandedLoader from "@/components/BrandedLoader";
 import { useGetPublishedCourseQuery } from "@/features/api/courseApi";
@@ -7,10 +8,12 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/components/languageContext";
 
 const AllCourses = () => {
+  const ui = useUiText();
+  const feedback = useFeedbackText();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const { data, isLoading, isError, error } = useGetPublishedCourseQuery();
+  const { data, isLoading, isError, error, refetch } = useGetPublishedCourseQuery();
   const courses = data?.courses ?? [];
 
   if (isError) {
@@ -19,8 +22,9 @@ const AllCourses = () => {
         <div className="mx-auto max-w-7xl rounded-[30px] border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
           <h1 className="text-xl font-bold">{t("searchFailed")}</h1>
           <p className="mt-2 text-sm">
-            {error?.data?.message || "Something went wrong while fetching the courses."}
+            {feedback(error?.data?.message, ui("Something went wrong while fetching the courses."))}
           </p>
+          <button type="button" onClick={() => refetch()} className="mt-4 rounded-lg border border-current px-4 py-2 font-semibold">{t("retry")}</button>
         </div>
       </section>
     );

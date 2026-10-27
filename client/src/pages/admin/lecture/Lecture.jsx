@@ -1,8 +1,10 @@
+import { useUiText } from "@/components/useUiText";
 import { ArrowDown, ArrowUp, Edit, GripVertical, PlayCircle } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
 const Lecture = ({ lecture, index, totalLectures, isReordering, onReorder }) => {
+  const ui = useUiText();
   const navigate = useNavigate();
   const goToUpdateLecture = () => {
     navigate(`${lecture._id}`);
@@ -15,11 +17,10 @@ const Lecture = ({ lecture, index, totalLectures, isReordering, onReorder }) => 
           <PlayCircle className="h-3 w-3" />
         </div>
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">
-            Lecture {index + 1}
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground dark:text-muted-foreground">{" "}{ui("Lecture")}{" "}{index + 1}
           </p>
           <h1 className="font-semibold text-foreground dark:text-foreground text-sm">
-            {lecture.lectureTitle || "Untitled lecture"}
+            {lecture.lectureTitle || ui("Untitled lecture")}
           </h1>
         </div>
       </div>
@@ -29,7 +30,7 @@ const Lecture = ({ lecture, index, totalLectures, isReordering, onReorder }) => 
           disabled={index === 0 || isReordering}
           onClick={() => onReorder?.(lecture._id, "up")}
           className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground"
-          aria-label={`Move lecture ${lecture.lectureTitle || index + 1} up`}
+          aria-label={ui("Move lecture {0} up", lecture.lectureTitle || index + 1)}
         >
           <ArrowUp size={14} />
         </button>
@@ -38,7 +39,7 @@ const Lecture = ({ lecture, index, totalLectures, isReordering, onReorder }) => 
           disabled={index === totalLectures - 1 || isReordering}
           onClick={() => onReorder?.(lecture._id, "down")}
           className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground"
-          aria-label={`Move lecture ${lecture.lectureTitle || index + 1} down`}
+          aria-label={ui("Move lecture {0} down", lecture.lectureTitle || index + 1)}
         >
           <ArrowDown size={14} />
         </button>
@@ -46,7 +47,7 @@ const Lecture = ({ lecture, index, totalLectures, isReordering, onReorder }) => 
           type="button"
           onClick={goToUpdateLecture}
           className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground"
-          aria-label={`Edit lecture ${lecture.lectureTitle || index + 1}`}
+          aria-label={ui("Edit lecture {0}", lecture.lectureTitle || index + 1)}
         >
           <Edit size={14} />
         </button>
