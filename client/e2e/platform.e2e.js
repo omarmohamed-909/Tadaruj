@@ -166,7 +166,7 @@ test("admin searches all users, retains page filters, and loads course access on
   const fixture = await fixtures();
   await login(page, fixture.adminEmail, fixture.password);
   let courseReads = 0;
-  page.on("request", request => { if (request.url().includes("/course/admin/manageable-courses")) courseReads++; });
+  page.on("request", request => { if (request.url().includes("/course/admin/course-access")) courseReads++; });
   await page.goto("/admin/users?q=E2E+Member&role=student&page=2");
   await expect(page.getByRole("heading", { level: 2 })).toHaveCount(5);
   await page.reload();
@@ -184,8 +184,33 @@ test("admin searches all users, retains page filters, and loads course access on
   await page.getByRole("button", { name: "Manage Course Access", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "Manage Course Access", exact: true })).toBeVisible();
-  await expect(dialog.getByText("E2E Physics Journey", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("article")).toHaveCount(12);
   expect(courseReads).toBe(1);
+  await dialog.getByRole("navigation", { name: "Course access pages", exact: true }).getByRole("button", { name: "Next", exact: true }).click();
+  await expect(dialog.getByRole("article")).toHaveCount(12);
+  await dialog.getByLabel("Course search", { exact: true }).fill("E2E Physics Journey");
+  await dialog.getByRole("button", { name: "Search courses", exact: true }).click();
+  await expect(dialog.getByRole("article")).toHaveCount(1);
+  await expect(dialog.getByText("E2E Physics Journey", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Grant access", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Revoke", exact: true })).toBeEnabled();
+  await page.screenshot({ path: test.info().outputPath("admin-course-access.png"), fullPage: false, animations: "disabled" });
+  await dialog.getByLabel("Course access", { exact: true }).click();
+  await page.getByRole("option", { name: "Available To Grant", exact: true }).click();
+  await expect(dialog.getByText("No matching courses found", { exact: true })).toBeVisible();
+  await dialog.getByLabel("Course access", { exact: true }).click();
+  await page.getByRole("option", { name: "Granted Courses", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Revoke", exact: true })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Revoke", exact: true }).click();
+  await expect(dialog.getByText("No matching courses found", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Clear filters", exact: true }).click();
+  await dialog.getByLabel("Course search", { exact: true }).fill("E2E Instructor");
+  await dialog.getByRole("button", { name: "Search courses", exact: true }).click();
+  await expect(dialog.getByText("Matching courses: 27", { exact: true })).toBeVisible();
+  await dialog.getByLabel("Publication status", { exact: true }).click();
+  await page.getByRole("option", { name: "Draft", exact: true }).click();
+  await expect(dialog.getByText("E2E unpublished draft", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("article")).toHaveCount(1);
   await page.keyboard.press("Escape");
   await page.getByLabel("Account status", { exact: true }).click();
   await page.getByRole("option", { name: "Suspended", exact: true }).click();
@@ -199,6 +224,13 @@ test("admin searches all users, retains page filters, and loads course access on
   await expect(page.getByLabel("ابحث عن مستخدم", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: test.info().outputPath("admin-users-ar-mobile.png"), fullPage: false });
+  await page.getByLabel("ابحث عن مستخدم", { exact: true }).fill("e2e-member-24@example.test");
+  await page.getByRole("button", { name: "ابحث عن مستخدم", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(1);
+  await page.getByRole("button", { name: "إدارة الوصول للكورسات", exact: true }).click();
+  await expect(dialog.getByRole("article")).toHaveCount(12);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: test.info().outputPath("admin-course-access-ar-mobile.png"), fullPage: false, animations: "disabled" });
 });
 
 test.describe("mobile catalog", () => {

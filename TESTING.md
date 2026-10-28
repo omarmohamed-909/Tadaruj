@@ -21,7 +21,7 @@ The plain backend test command skips real database suites when their test URIs a
 
 ## Isolated MongoDB integration tests
 
-Tests require a replica set named `codex-test` at `127.0.0.1:27028`. Never point them at a platform database. The strict runner does not load `.env` or use `MONGO_URI`: it generates four separate, fresh database names and checks the replica-set identity before starting Vitest. Integration suites also refuse populated databases. The admin suite tests authenticated role restrictions, complete-user search, stable pagination, private-field exclusion, and recovery from removed pages.
+Tests require a replica set named `codex-test` at `127.0.0.1:27028`. Never point them at a platform database. The strict runner does not load `.env` or use `MONGO_URI`: it generates four separate, fresh database names and checks the replica-set identity before starting Vitest. Integration suites also refuse populated databases. The admin suite tests role restrictions, complete-user search, target-specific course-access filters, stable pagination, private-field exclusion, page recovery, grant/revoke behavior, and the paid-purchase access guard.
 
 GitHub Actions starts an ephemeral `mongo:7.0` container using [.github/scripts/start-test-mongo.sh](.github/scripts/start-test-mongo.sh). This avoids the [MongoDB 8/kernel startup incompatibility](https://jira.mongodb.org/browse/SERVER-136848) on some hosted runners. It does not change the application's deployed database. On a local machine with Docker, run:
 

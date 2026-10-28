@@ -2,6 +2,21 @@ import { interpolate } from "./localize";
 
 // Interface copy only. Never pass course content or API request values through this map.
 export const interfaceMessages = {
+  "Course search": "البحث عن كورس",
+  "Search by course title or instructor": "ابحث بعنوان الكورس أو اسم المدرّس",
+  "Search courses": "ابحث عن كورسات",
+  "Publication status": "حالة النشر",
+  "Course access": "صلاحية الوصول",
+  "All courses": "كل الكورسات",
+  "Course access pages": "صفحات صلاحيات الكورسات",
+  "Granted courses appear first. Counts below are for this page.": "الكورسات المتاحة للمستخدم بتظهر الأول. الأعداد بالأسفل تخص الصفحة الحالية.",
+  "Matching courses: {0}": "الكورسات المطابقة: {0}",
+  "Direct grants: {0}": "الصلاحيات المباشرة: {0}",
+  "Invalid course access filters.": "خيارات البحث عن صلاحيات الكورسات غير صحيحة.",
+  "Failed to load courses.": "تعذّر تحميل الكورسات.",
+  "Course access granted successfully.": "تم منح الوصول للكورس.",
+  "Course access revoked successfully.": "تم إلغاء الوصول للكورس.",
+  "This user purchased the course, so access cannot be revoked here.": "المستخدم اشترى الكورس، لذلك مينفعش تلغي وصوله من هنا.",
   "Account status": "حالة الحساب",
   "All statuses": "كل الحالات",
   "Active": "نشط",

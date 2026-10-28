@@ -1,5 +1,6 @@
 import { reportError } from "../utils/logger.js";
 import mongoose from "mongoose";
+import { readAdminCourseFilters, readAdminCoursePage } from "../utils/adminCourses.js";
 import { verifyDirectUpload } from "../utils/directUploads.js";
 import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
@@ -835,13 +836,26 @@ export const getAdminManageableCourses = async (_req, res) => {
             .select("courseTitle courseThumbnail coursePrice isPublished creator category subject gradeLevel")
             .populate({ path: "creator", select: "name email" })
             .sort({ createdAt: -1 });
+        return res.status(200).json({ success: true, courses });
+    } catch (error) {
+        reportError("course.get_admin_manageable_courses.failed", error);
+        return res.status(500).json({ success: false, message: "Failed to load courses." });
+    }
+};
+
+export const getAdminCourseAccess = async (req, res) => {
+    try {
+        const filters = readAdminCourseFilters(req.query);
+        if (!filters) return res.status(400).json({ success: false, message: "Invalid course access filters." });
+        const result = await readAdminCoursePage(filters);
+        if (!result) return res.status(404).json({ success: false, message: "User not found." });
 
         return res.status(200).json({
             success: true,
-            courses,
+            ...result,
         });
     } catch (error) {
-        reportError("course.get_admin_manageable_courses.failed", error);
+        reportError("course.get_admin_course_access.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to load courses.",

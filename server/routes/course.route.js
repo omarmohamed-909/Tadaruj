@@ -5,6 +5,7 @@ import requireCourseManager from "../middlewares/requireCourseManager.js";
 import { createCourse, createLecture, deleteCourse, editCourse, editLecture, getAdminManageableCourses, getCourseById, getPublicCourseById, getCourseLecture, getCreatorCourses, getLectureById, getPublishedCourse, removeLecture, reorderLecture, searchCourse, togglePublishCourse, updateLectureQuiz } from "../controllers/course.controller.js";
 import upload, { uploadPdf } from "../utils/multer.js";
 import { getCourseFilters } from "../controllers/course.controller.js";
+import { getAdminCourseAccess } from "../controllers/course.controller.js";
 
 const router = express.Router();
 
@@ -14,6 +15,7 @@ router.route("/filters").get(getCourseFilters);
 router.route("/published-courses").get(getPublishedCourse);
 router.route("/public/:courseId").get(getPublicCourseById);
 router.route("/admin/manageable-courses").get(isAuthenticated, authorizeRoles("admin"), getAdminManageableCourses);
+router.route("/admin/course-access").get(isAuthenticated, authorizeRoles("admin"), getAdminCourseAccess);
 router.route("/").get(isAuthenticated,authorizeRoles("instructor", "admin"),getCreatorCourses);
 router.route("/:courseId").put(isAuthenticated,requireCourseManager,upload.single("courseThumbnail"),editCourse);
 router.route("/:courseId").delete(isAuthenticated,requireCourseManager, deleteCourse);

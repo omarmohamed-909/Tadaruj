@@ -26,13 +26,12 @@ import {
 import {
   useDeleteAdminUserMutation,
   useGetAdminUsersQuery,
-  useUpdateUserCourseAccessMutation,
   useUpdateUserRoleMutation,
   useCreateAdminInvitationMutation,
   useUpdateUserStatusMutation,
 } from "@/features/api/authApi";
-import { useGetAdminManageableCoursesQuery } from "@/features/api/courseApi";
-import { BookOpen, Mail, ShieldCheck, Trash2, Users } from "lucide-react";
+import UserCourseAccessDialog from "./UserCourseAccessDialog";
+import { Mail, ShieldCheck, Trash2, Users } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -49,51 +48,6 @@ const roleFilters = [
   { label: "Admins", value: "admin" },
 ];
 
-const CourseAccessCard = ({ course, hasAccess, onAction, isLoading }) => {
-  const ui = useUiText();
-  return (<div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-950/80 sm:rounded-[28px] sm:p-5">
-    <div className="flex h-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex min-w-0 items-start gap-4 lg:flex-1">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-cyan-500/10 dark:text-cyan-300 sm:h-14 sm:w-14">
-          <BookOpen className="h-5 w-5" />
-        </div>
-
-        <div className="min-w-0 flex-1 space-y-2">
-          <h3 className="text-base font-semibold leading-7 text-slate-950 dark:text-slate-100 sm:text-lg lg:line-clamp-1">
-            {course.courseTitle}
-          </h3>
-          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-            <span className="truncate">{course.creator?.name || ui("Unknown creator")}</span>
-            <span className="text-slate-300 dark:text-slate-600">•</span>
-            <span>{course.isPublished ? ui("Published") : ui("Draft")}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:shrink-0">
-        <Badge
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            hasAccess
-              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-              : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-          }`}
-        >
-          {hasAccess ? ui("Has access") : ui("No access")}
-        </Badge>
-        <Button
-          type="button"
-          variant={hasAccess ? "outline" : "default"}
-          disabled={isLoading}
-          onClick={onAction}
-          className="h-10 min-w-28 rounded-2xl text-xs sm:min-w-32 sm:text-sm"
-        >
-          {hasAccess ? ui("Revoke") : ui("Grant access")}
-        </Button>
-      </div>
-    </div>
-  </div>);
-};
-
 const UsersManagement = () => {
   const feedback = useFeedbackText();
   const ui = useUiText();
@@ -103,11 +57,11 @@ const UsersManagement = () => {
   const statusFilter = ["active", "suspended"].includes(searchParams.get("status")) ? searchParams.get("status") : "all";
   const [searchQuery, setSearchQuery] = useState(query);
   useEffect(() => setSearchQuery(query), [query]);
-  const [courseSearchQuery, setCourseSearchQuery] = useState("");
+
   const [selectedUserId, setSelectedUserId] = useState(null);
   useEffect(() => {
     setSelectedUserId(null);
-    setCourseSearchQuery("");
+
   }, [page, query, roleFilter, statusFilter]);
   const [deleteTargetUser, setDeleteTargetUser] = useState(null);
   const [invitationEmail, setInvitationEmail] = useState("");
@@ -115,14 +69,14 @@ const UsersManagement = () => {
 
   const { currentData: data, isLoading, isFetching, isError, error, refetch } = useGetAdminUsersQuery({ page, limit: 20, q: query, role: roleFilter, status: statusFilter });
   useCanonicalCoursePage(data?.page, isFetching, page, setSearchParams);
-  const { data: coursesData, isLoading: coursesLoading } = useGetAdminManageableCoursesQuery(undefined, { skip: !selectedUserId });
+
   const [updateUserRole, { isLoading: roleLoading }] = useUpdateUserRoleMutation();
-  const [updateUserCourseAccess, { isLoading: accessLoading }] = useUpdateUserCourseAccessMutation();
+
   const [deleteAdminUser, { isLoading: deleteLoading }] = useDeleteAdminUserMutation();
   const [updateUserStatus, { isLoading: statusLoading }] = useUpdateUserStatusMutation();
 
   const users = data?.users ?? [];
-  const manageableCourses = coursesData?.courses ?? [];
+
   const filteredUsers = users;
   const updateFilters = (changes) => {
     setSelectedUserId(null);
@@ -138,22 +92,6 @@ const UsersManagement = () => {
   };
 
   const selectedUser = users.find((user) => user._id === selectedUserId) || null;
-  const filteredManageableCourses = manageableCourses.filter((course) => {
-    const normalizedQuery = courseSearchQuery.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return true;
-    }
-
-    return [course.courseTitle, course.creator?.name, course.isPublished ? "published" : "draft"]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(normalizedQuery));
-  });
-  const coursesWithAccess = filteredManageableCourses.filter((course) =>
-    selectedUser?.enrolledCourses?.some((enrolledCourse) => enrolledCourse._id === course._id)
-  );
-  const coursesWithoutAccess = filteredManageableCourses.filter(
-    (course) => !selectedUser?.enrolledCourses?.some((enrolledCourse) => enrolledCourse._id === course._id)
-  );
 
   const handleRoleChange = async (userId, role) => {
     try {
@@ -197,23 +135,6 @@ const UsersManagement = () => {
       toast.success(feedback(response?.message || ui("Account status updated."), ui("Account status updated.")));
     } catch (statusError) {
       toast.error(feedback(statusError?.data?.message || ui("Could not update account status."), ui("Could not update account status.")));
-    }
-  };
-
-  const handleCourseAccess = async (courseId, action) => {
-    if (!selectedUserId) {
-      return;
-    }
-
-    try {
-      const response = await updateUserCourseAccess({
-        userId: selectedUserId,
-        courseId,
-        action,
-      }).unwrap();
-      toast.success(feedback(response?.message || ui("Course access updated."), ui("Course access updated.")));
-    } catch (accessError) {
-      toast.error(feedback(accessError?.data?.message || ui("Failed to update course access."), ui("Failed to update course access.")));
     }
   };
 
@@ -357,7 +278,7 @@ const UsersManagement = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={roleLoading || accessLoading}
+                  disabled={roleLoading || isFetching}
                   onClick={() => setSelectedUserId(user._id)}
                   className="h-10 flex-1 rounded-2xl px-3 text-xs font-semibold sm:text-sm lg:flex-none"
                 >{" "}{ui("Manage Course Access")}{" "}</Button>
@@ -423,115 +344,7 @@ const UsersManagement = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={Boolean(selectedUser)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedUserId(null);
-            setCourseSearchQuery("");
-          }
-        }}
-      >
-        <DialogContent className="max-h-[88vh] w-[96vw] max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white p-0 dark:border-slate-800 dark:bg-slate-950 sm:w-full sm:rounded-4xl">
-          <DialogHeader className="border-b border-slate-200 bg-slate-50/80 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/40 sm:px-6 sm:py-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <DialogTitle className="text-xl font-bold sm:text-2xl">{ui("Manage Course Access")}</DialogTitle>
-                <DialogDescription className="mt-2 text-sm leading-6">
-                  {selectedUser
-                    ? ui("Grant or revoke direct course access for {0}.", selectedUser.name)
-                    : ui("Select a user.")}
-                </DialogDescription>
-              </div>
-
-              {selectedUser && (
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-cyan-500/10 dark:text-cyan-300">
-                    {manageableCourses.length}{" "}{ui("courses")}{" "}</Badge>
-                  <Badge className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                    {selectedUser.enrolledCourses?.length ?? 0}{" "}{ui("direct grants")}{" "}</Badge>
-                </div>
-              )}
-            </div>
-          </DialogHeader>
-
-          <div className="max-h-[calc(88vh-148px)] overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-4 py-4 dark:bg-[linear-gradient(180deg,#020617_0%,#0b1220_100%)] sm:px-6 sm:py-6">
-            {coursesLoading ? (
-              <PageSkeleton variant="default" />
-            ) : (
-              <div className="space-y-4">
-                <div className="sticky top-0 z-10 rounded-3xl border border-slate-200/80 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{" "}{ui("Showing")}{" "}{filteredManageableCourses.length}{" "}{ui("of")}{" "}{manageableCourses.length}{" "}{ui("courses")}{" "}</p>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{" "}{ui("Search by title, creator, or status. Granted courses appear first.")}{" "}</p>
-                    </div>
-                    <Input
-                      value={courseSearchQuery}
-                      onChange={(event) => setCourseSearchQuery(event.target.value)}
-                      placeholder={ui("Search courses in this dialog")}
-                      className="w-full max-w-md rounded-2xl"
-                    />
-                  </div>
-                </div>
-
-                {coursesWithAccess.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3 dark:bg-emerald-900/10">
-                      <div>
-                        <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">{ui("Granted Courses")}</p>
-                        <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">{" "}{ui("Courses this user can already access directly.")}{" "}</p>
-                      </div>
-                      <Badge className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                        {coursesWithAccess.length}
-                      </Badge>
-                    </div>
-                    {coursesWithAccess.map((course) => (
-                      <CourseAccessCard
-                        key={course._id}
-                        course={course}
-                        hasAccess
-                        isLoading={accessLoading || isFetching}
-                        onAction={() => handleCourseAccess(course._id, "revoke")}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {coursesWithoutAccess.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between rounded-2xl bg-slate-100 px-4 py-3 dark:bg-slate-900/70">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{ui("Available To Grant")}</p>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{" "}{ui("Courses the user does not have direct access to yet.")}{" "}</p>
-                      </div>
-                      <Badge className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        {coursesWithoutAccess.length}
-                      </Badge>
-                    </div>
-                    {coursesWithoutAccess.map((course) => (
-                      <CourseAccessCard
-                        key={course._id}
-                        course={course}
-                        hasAccess={false}
-                        isLoading={accessLoading || isFetching}
-                        onAction={() => handleCourseAccess(course._id, "grant")}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {!filteredManageableCourses.length && (
-                  <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/40">
-                    <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{ui("No matching courses found")}</p>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{" "}{ui("Try a different course title, creator name, or status.")}{" "}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {selectedUser && <UserCourseAccessDialog key={selectedUser._id} user={selectedUser} onClose={() => setSelectedUserId(null)} />}
     </div>
   );
 };

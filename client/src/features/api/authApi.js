@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { courseApi } from "./courseApi";
 
 import { userLoggedIn, userloggedout } from "../authSlice";
 
@@ -283,6 +284,11 @@ export const authApi = createApi({
                 method: "PATCH",
                 body: { courseId, action },
             }),
+            async onQueryStarted({ userId }, { dispatch, queryFulfilled }) {
+                try { await queryFulfilled; }
+                catch { /* The component reports the error; refresh authoritative access either way. */ }
+                finally { dispatch(courseApi.util.invalidateTags([{ type: "Admin_Course_Access", id: userId }])); }
+            },
             invalidatesTags: ["AdminUsers"],
         }),
     }),

@@ -22,6 +22,7 @@ export const courseApi = createApi({
     "Refresh_Published_Course",
     "Refresh_Search_Course",
     "Admin_Manageable_Course",
+    "Admin_Course_Access",
   ],
   baseQuery: fetchBaseQuery({
     baseUrl: Course_API,
@@ -43,7 +44,7 @@ export const courseApi = createApi({
         method: "POST",
         body: { courseTitle, subject, gradeLevel },
       }),
-      invalidatesTags: ["Refresh_Creator_Course"],
+      invalidatesTags: ["Refresh_Creator_Course", "Admin_Manageable_Course", "Admin_Course_Access"],
     }),
     getSearchCourse: builder.query({
       query: ({ query, subjects, grades, sortByPrice, page = 1, limit = 12 }) => {
@@ -108,11 +109,16 @@ export const courseApi = createApi({
           : ["Refresh_Creator_Course"],
     }),
     getAdminManageableCourses: builder.query({
-      query: () => ({
-        url: "/admin/manageable-courses",
-        method: "GET",
-      }),
+      query: () => ({ url: "/admin/manageable-courses", method: "GET" }),
       providesTags: ["Admin_Manageable_Course"],
+    }),
+    getAdminCourseAccess: builder.query({
+      query: ({ userId, page = 1, limit = 12, q = "", status = "all", access = "all" } = {}) => ({
+        url: "/admin/course-access",
+        method: "GET",
+        params: { page, limit, ...(userId ? { userId } : {}), ...(q ? { q } : {}), ...(status !== "all" ? { status } : {}), ...(access !== "all" ? { access } : {}) },
+      }),
+      providesTags: (_result, _error, { userId } = {}) => [{ type: "Admin_Course_Access", id: userId }],
     }),
     editCourse: builder.mutation({
       query: ({ formData, courseId }) => ({
@@ -121,6 +127,8 @@ export const courseApi = createApi({
         body: formData,
       }),
       invalidatesTags: (result, error, { courseId }) => [
+        "Admin_Manageable_Course",
+        "Admin_Course_Access",
         "Refresh_Creator_Course",
         "Refresh_Published_Course",
         "Refresh_Search_Course",
@@ -150,6 +158,7 @@ export const courseApi = createApi({
         "Refresh_Published_Course",
         "Refresh_Search_Course",
         "Admin_Manageable_Course",
+        "Admin_Course_Access",
         { type: "Refresh_Course", id: courseId },
       ],
       async onQueryStarted(courseId, { dispatch, queryFulfilled }) {
@@ -253,6 +262,8 @@ export const courseApi = createApi({
         method: "PATCH",
       }),
       invalidatesTags: (result, error, { courseId }) => [
+        "Admin_Manageable_Course",
+        "Admin_Course_Access",
         "Refresh_Creator_Course",
         "Refresh_Published_Course",
         "Refresh_Search_Course",
@@ -280,6 +291,7 @@ export const {
   useGetPublishedCourseQuery,
   useGetCreatorCourseQuery,
   useGetAdminManageableCoursesQuery,
+  useGetAdminCourseAccessQuery,
   useEditCourseMutation,
   useDeleteCourseMutation,
   useGetCourseByIdQuery,
