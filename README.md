@@ -191,7 +191,7 @@ npm run build --prefix client
 npm run check:bundle --prefix client
 ```
 
-[GitHub Actions](https://github.com/omarmohamed-909/Tadaruj/actions/workflows/ci.yml) runs frontend checks, the full backend suite against an isolated MongoDB replica set, and Chromium browser journeys on pushes and pull requests. Browser tests cover registration, verification, manual enrollment approval, video completion, and catalog pagination.
+[GitHub Actions](https://github.com/omarmohamed-909/Tadaruj/actions/workflows/ci.yml) runs frontend checks, the full backend suite against an isolated MongoDB replica set, and Chromium browser journeys on pushes and pull requests. Browser tests cover registration, verification, manual enrollment approval, video completion, and catalog pagination. The backend job also verifies the API container and restores a synthetic database backup into a separate empty database.
 
 The plain backend test command skips database suites without test URIs. Use `npm run test:ci --prefix server` to require them, or `npm run test:e2e --prefix client` for browser tests. See [TESTING.md](TESTING.md) for the isolated database setup, browser installation, test boundaries, and failure artifacts.
 
@@ -200,6 +200,7 @@ The plain backend test command skips database suites without test URIs. Use `npm
 ```sh
 npm run check:setup --prefix server
 npm run check:setup --prefix server -- --services
+npm run check:production --prefix server
 ```
 
 These checks do not send email. To send a real test message to an address you own that is allowed by your Resend configuration:
@@ -247,7 +248,7 @@ The frontend and backend can be deployed independently. The repository includes 
 2. Set `VITE_API_BASE_URL` to the deployed backend address before building the frontend. Start the backend with `npm start --prefix server`.
 3. Configure `NODE_ENV=production`, the database connection, and secrets in the backend hosting environment.
 4. Update `FRONTEND_URL` and `FRONTEND_URLS`, register the deployed frontend origin with Google, and verify your email domain in Resend.
-5. Review the [test report](TEST_REPORT.md) and test registration, verification, sign-in, enrollment, and content access in the deployed environment.
+5. Follow the [deployment guide](DEPLOYMENT.md), verify [backup recovery](RECOVERY.md), and test registration, verification, sign-in, enrollment, and content access in the deployed environment.
 
 Passing CI does not validate external service credentials or domain configuration. Some video engines loaded on demand still produce bundle-size warnings during the build; account for these when reviewing deployment performance.
 
@@ -263,6 +264,8 @@ The testing guide is in English; service setup guides include Arabic instruction
 | [Google sign-in](GOOGLE_AUTH_SETUP.md) | Google client configuration and account linking behavior |
 | [Test report](TEST_REPORT.md) | Recorded results, test coverage areas, and verification limits |
 | [Testing guide](TESTING.md) | Isolated MongoDB, Playwright journeys, CI, and pagination contracts |
+| [Deployment guide](DEPLOYMENT.md) | Production configuration, probes, Docker, monitoring, and rollback |
+| [Recovery guide](RECOVERY.md) | Consistent backups, isolated restores, media dependencies, and CI recovery drill |
 
 ---
 

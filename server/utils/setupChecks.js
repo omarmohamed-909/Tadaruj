@@ -12,11 +12,20 @@ export function inspectSetup(env = process.env) {
   let frontend = false;
   try {
     const url = new URL(env.FRONTEND_URL);
-    frontend = env.NODE_ENV === "production" ? url.protocol === "https:" : ["http:", "https:"].includes(url.protocol);
+    frontend = (env.NODE_ENV === "production" ? url.protocol === "https:" : ["http:", "https:"].includes(url.protocol))
+      && !url.username && !url.password && url.pathname === "/" && !url.search && !url.hash;
   } catch { /* Report the field name below. */ }
   if (!database) issues.push("MONGO_URI is missing or invalid.");
   if (!secret) issues.push("SECRET_KEY must be a non-placeholder secret of at least 32 characters.");
   if (!frontend) issues.push("FRONTEND_URL is missing or invalid (HTTPS required in production).");
+  for (const value of (env.FRONTEND_URLS || "").split(",").filter((item) => item.trim())) {
+    try {
+      const url = new URL(value.trim());
+      if (!(env.NODE_ENV === "production" ? url.protocol === "https:" : ["http:", "https:"].includes(url.protocol)) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new Error();
+    } catch { issues.push("FRONTEND_URLS must contain exact allowed origins (HTTPS required in production)."); break; }
+  }
+  const proxyHops = Number(env.TRUST_PROXY_HOPS || "0");
+  if (!Number.isSafeInteger(proxyHops) || proxyHops < 0) issues.push("TRUST_PROXY_HOPS must be a non-negative integer matching your reverse proxy.");
   if (!cloudinary) issues.push("Cloudinary upload credentials are missing.");
   if (!emailConfig.credentialsConfigured) issues.push("Set RESEND_API_KEY and a valid RESEND_FROM_EMAIL (and valid optional RESEND_REPLY_TO).");
   if (!emailConfig.enabled) issues.push("Email delivery is disabled by EMAIL_DELIVERY_ENABLED=false.");

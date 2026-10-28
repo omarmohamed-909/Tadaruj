@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { logger } from "../utils/logger.js";
 
 // Cache the connection promise so concurrent cold-start requests
 // all wait on the same connection instead of racing.
@@ -13,17 +14,15 @@ const connectDB = async () => {
 
     connectionPromise = mongoose
         .connect(process.env.MONGO_URI, {
-            serverSelectionTimeoutMS: 50000, // fail fast if Atlas is unreachable
+            serverSelectionTimeoutMS: 8000,
             socketTimeoutMS: 45000,
+            bufferCommands: false,
         })
         .then(() => {
-            console.log("MongoDB Connected");
+            logger("info", "database.connected");
         })
-        .catch((error) => {
-            console.error("MongoDB connection error:", error.message);
-            connectionPromise = null; // allow retry on next request
-            throw error;             // propagate so the request gets a 503
-        });
+        .catch(() => { throw new Error("Database unavailable."); })
+        .finally(() => { connectionPromise = null; }); // Retry after a failed or lost connection.
 
     return connectionPromise;
 };

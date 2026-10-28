@@ -29,6 +29,19 @@ async function login(page, email, password) {
   await expect(page).toHaveURL("http://127.0.0.1:5193/");
 }
 
+test("live API exposes bounded health probes and correlated JSON errors", async ({ request }) => {
+  const origin = "http://127.0.0.1:8093";
+  const live = await request.get(`${origin}/health/live`);
+  expect(live.status()).toBe(200);
+  expect(await live.json()).toEqual({ status: "alive" });
+  const ready = await request.get(`${origin}/health/ready`);
+  expect(ready.status()).toBe(200);
+  expect(ready.headers()["cache-control"]).toBe("no-store");
+  const missing = await request.get(`${origin}/missing?token=synthetic-private-value`);
+  expect(missing.status()).toBe(404);
+  expect(await missing.json()).toEqual({ success: false, message: "Not found.", requestId: missing.headers()["x-request-id"] });
+});
+
 test("catalog, search filters, and public instructor courses retain their pages", async ({ page }) => {
   const fixture = await fixtures();
   await page.goto("/courses");

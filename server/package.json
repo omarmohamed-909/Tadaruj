@@ -12,6 +12,7 @@
     "test:ci": "node scripts/runIntegrationTests.js --all",
     "test:watch": "vitest",
     "check:setup": "node scripts/checkSetup.js",
+    "check:production": "node scripts/checkSetup.js --production --services",
     "email:test": "node scripts/sendTestEmail.js",
     "bootstrap:admin": "node scripts/bootstrapAdmin.js",
     "migrate:protected-media": "node scripts/migrateProtectedMedia.js"

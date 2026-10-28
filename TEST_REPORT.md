@@ -1,5 +1,17 @@
 # سجل التحقق — تدرّج
 
+## Phase 3 — 28 October 2026
+
+- Separated the Express app from the standalone listener. Vercel imports a default handler; local and Docker processes own the listener and signal handlers.
+- Added independent liveness and bounded readiness probes, safe JSON middleware errors, server-generated request IDs, structured request logs, and graceful shutdown with a 10-second deadline.
+- Fixed the database connection cache retaining a settled promise after a lost connection. Connection selection is bounded to eight seconds and disconnected command buffering is disabled.
+- Production startup now refuses incomplete service configuration, malformed frontend origins, enabled local shortcuts, and invalid proxy hop settings. `check:production` performs the existing read-only service checks under production rules without sending mail.
+- The API image uses Node 22, runs as an unprivileged user, and has a liveness health check. CI additionally builds/starts that image against its isolated replica set and verifies readiness and denied anonymous access.
+- Added a CI backup/restore drill using synthetic student, course, enrollment, progress, and unique-index fixtures. It restores into a different fresh database without dropping data; its archive stays inside the ephemeral container.
+- Local validation: **288 backend tests passed** with real MongoDB and **4 Chromium journeys passed**, including live API health, enrollment approval, actual video completion, and mobile pagination. Frontend lint passed.
+- The production configuration check intentionally reports **not ready** in this independent checkout: real production database, signing key, frontend origin, media, and sender settings have not been supplied here. No public deployment or real email/message/payment occurred in this phase.
+- See [DEPLOYMENT.md](DEPLOYMENT.md) and [RECOVERY.md](RECOVERY.md). Public hosting, domain verification, delivery, off-site backup retention, and recovery against real platform data remain deployment tasks. Existing controller/provider logs have not all been migrated to the new logger.
+
 ## Phase 2 — 28 October 2026
 
 - Public catalog, search, and instructor courses now use bounded pagination (12 by default, at most 24). Counts cover the full result set, sorting is stable, and page/filter state survives reload and browser history.

@@ -48,6 +48,10 @@ jobs:
       - name: Start isolated MongoDB replica set
         run: bash ../.github/scripts/start-test-mongo.sh
       - run: npm run test:ci
+      - name: Build and smoke-test non-root API container
+        run: bash ../.github/scripts/check-container.sh
+      - name: Verify backup restoration with synthetic fixtures
+        run: bash ../.github/scripts/check-recovery.sh
 
   browser:
     runs-on: ubuntu-24.04

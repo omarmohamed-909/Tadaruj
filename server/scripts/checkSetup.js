@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { inspectSetup } from "../utils/setupChecks.js";
 
 dotenv.config({ quiet: true });
+if (process.argv.includes("--production")) process.env.NODE_ENV = "production";
 const report = inspectSetup();
 console.log(JSON.stringify(report, null, 2));
 if (process.argv.includes("--services")) {

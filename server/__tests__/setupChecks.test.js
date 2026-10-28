@@ -45,4 +45,14 @@ describe("setup diagnostics", () => {
   it("allows localhost URLs during development", () => {
     expect(inspectSetup({ ...valid, NODE_ENV: "development", FRONTEND_URL: "http://localhost:5173" }).ready).toBe(true);
   });
+  it("requires exact origins without embedded credentials, paths, or query data", () => {
+    for (const origin of ["https://user:password@example.test", "https://example.test/login", "https://example.test/?token=private"]) {
+      expect(inspectSetup({ ...valid, FRONTEND_URL: origin }).ready).toBe(false);
+      expect(inspectSetup({ ...valid, FRONTEND_URLS: origin }).ready).toBe(false);
+    }
+    expect(inspectSetup({ ...valid, FRONTEND_URLS: "https://www.example.test,http://localhost:5173" }).ready).toBe(false);
+  });
+  it("rejects ambiguous proxy hop settings", () => {
+    for (const value of ["-1", "1oops", "1.5"]) expect(inspectSetup({ ...valid, TRUST_PROXY_HOPS: value }).ready).toBe(false);
+  });
 });

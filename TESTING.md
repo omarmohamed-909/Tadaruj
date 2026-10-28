@@ -75,6 +75,6 @@ Fixtures and generated media live in ignored `.test-runtime/`. They contain synt
 
 ## CI and limits
 
-The frontend, real-database backend, and browser jobs run independently on pushes and pull requests, without service secrets. A successful run verifies these local contracts and journeys, not production readiness or external service delivery. On-demand video engines still produce a build size warning.
+The frontend, real-database backend, and browser jobs run independently on pushes and pull requests, without service secrets. The backend job also builds and starts the non-root API container, checks its health/anonymous access, and performs the synthetic backup/restore drill documented in [RECOVERY.md](RECOVERY.md). Operational tests cover database reconnection, bounded readiness, safe HTTP failures, production startup, and shutdown. A successful run verifies these contracts and journeys, not production readiness or external service delivery. On-demand video engines still produce a build size warning.
 
 References: [Playwright CI](https://playwright.dev/docs/ci), [Playwright test isolation](https://playwright.dev/docs/browser-contexts), [MongoDB test replica sets](https://www.mongodb.com/docs/manual/tutorial/deploy-replica-set-for-testing/).

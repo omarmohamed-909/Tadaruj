@@ -22,6 +22,10 @@
 
 # Local databases, media, logs and test artifacts
 .test-runtime/
+**/backups/
+*.archive
+*.archive.gz
+*.bson
 **/uploads/
 logs/
 *.log
