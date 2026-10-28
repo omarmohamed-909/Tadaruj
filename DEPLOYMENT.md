@@ -7,7 +7,7 @@ The repository now includes health probes, graceful container shutdown, a produc
 - Frontend: [tadaruj-phi.vercel.app](https://tadaruj-phi.vercel.app), Vercel project `tadaruj`, root directory `client`.
 - API: [tadaruj-api.vercel.app](https://tadaruj-api.vercel.app/health/live), Vercel project `tadaruj-api`, root directory `server`.
 - Both projects use Node 22. The API uses the platform's existing database and media service with a separate session signing secret. Service credentials are held as backend secrets, not frontend build variables.
-- This is an explicitly marked demo with owner-only Resend test delivery. Google sign-in stays disabled until the new frontend origin is registered in the existing OAuth client and `GOOGLE_CLIENT_ID` is configured on this API.
+- This is an explicitly marked demo with owner-only Resend test delivery. Google sign-in is enabled using the existing OAuth client after registering the assigned frontend origin; the live button and Google authorization popup were verified without signing in to a personal account.
 - Deployments currently use the CLI. The Git repository connection was not established, so GitHub pushes do not automatically deploy these projects yet.
 
 Run deployments from the **repository root**, because each Vercel project already has its root directory configured:

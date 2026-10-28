@@ -7,7 +7,13 @@
 - Verified the live API: liveness and warmed readiness return 200; the public catalog returns JSON; anonymous profile access returns 401; the assigned frontend origin receives the expected CORS header. An initial cold readiness probe returned 503 while the database connection was established, followed by successful readiness.
 - Read-only Chromium checks against the deployed frontend passed for home, courses, about, login, and password recovery, including direct route reloads, visible demo notice, mobile width, and no uncaught rendering errors. No users, orders, payments, or real messages were created by these checks.
 - The demo sender remains limited to the configured account-owner mailbox. Explicit demo mode retains production HTTPS/origin checks and forbids development verification/reset shortcuts. Added tests keep other recipients blocked. **290 backend tests passed** locally; frontend lint, build, and startup budget passed, and GitHub CI succeeded for the deployment preparation commit.
-- Google sign-in has not been enabled on the hosted API: its new origin still needs authorization in Google Cloud. The Vercel Git connection was rejected, so current releases use CLI deployment rather than automatic deployment from GitHub pushes.
+- Google sign-in was initially disabled pending origin authorization; the follow-up below records its activation. The Vercel Git connection was rejected, so current releases use CLI deployment rather than automatic deployment from GitHub pushes.
+
+### Google origin follow-up
+
+- Configured the public Google client ID on the hosted API and redeployed after the frontend origin was added in Google Cloud.
+- Verified the actual deployed login page: backend challenge returned 200, Google's button renderer returned 200, the button was visible, and its popup opened `accounts.google.com/v3/signin/identifier` without origin-mismatch errors.
+- No Google account was selected, no credentials were entered, and no platform user was created. This verifies the beginning of the hosted Google flow; completion using a personal account remains a separate check.
 
 ## Phase 3 — 28 October 2026
 
