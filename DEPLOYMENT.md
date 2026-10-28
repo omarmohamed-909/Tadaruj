@@ -8,9 +8,9 @@ The repository now includes health probes, graceful container shutdown, a produc
 - API: [tadaruj-api.vercel.app](https://tadaruj-api.vercel.app/health/live), Vercel project `tadaruj-api`, root directory `server`.
 - Both projects use Node 22. The API uses the platform's existing database and media service with a separate session signing secret. Service credentials are held as backend secrets, not frontend build variables.
 - This is an explicitly marked demo with owner-only Resend test delivery. Google sign-in is enabled using the existing OAuth client after registering the assigned frontend origin; the live button and Google authorization popup were verified without signing in to a personal account.
-- Deployments currently use the CLI. The Git repository connection was not established, so GitHub pushes do not automatically deploy these projects yet.
+- Both Vercel projects are connected to `omarmohamed-909/Tadaruj`, with `main` as the production branch. GitHub pushes can trigger production deployments for the corresponding project roots; pull requests use Vercel previews.
 
-Run deployments from the **repository root**, because each Vercel project already has its root directory configured:
+For an optional manual release, run deployments from the **repository root**, because each Vercel project already has its root directory configured:
 
 ```sh
 vercel deploy --prod --yes --project tadaruj-api --scope omarmohamed-909s-projects

@@ -13,3 +13,9 @@ VITE_API_BASE_URL هو عنوان الخادم دون /api/v1. إذا لم يُ�
 أوامر التحقق: npm test، npm run lint، npm run build، ثم npm run check:bundle.
 
 لا تُضف أسرار Google أو Resend أو Cloudinary إلى الواجهة.
+
+## Hosted deployment
+
+The Vercel project `tadaruj` builds this `client/` directory using Node 22 and publishes `dist/` at [tadaruj-phi.vercel.app](https://tadaruj-phi.vercel.app).
+
+The project is connected to `omarmohamed-909/Tadaruj`; its production branch is `main`. Frontend build variables are configured on Vercel. See [the deployment guide](../DEPLOYMENT.md) for the demo email restriction, service setup, and optional manual release commands.

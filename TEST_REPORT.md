@@ -15,6 +15,12 @@
 - Verified the actual deployed login page: backend challenge returned 200, Google's button renderer returned 200, the button was visible, and its popup opened `accounts.google.com/v3/signin/identifier` without origin-mismatch errors.
 - No Google account was selected, no credentials were entered, and no platform user was created. This verifies the beginning of the hosted Google flow; completion using a personal account remains a separate check.
 
+### GitHub deployment connection
+
+- After granting Vercel access to this repository, both `tadaruj` and `tadaruj-api` were linked to repository ID `1435681733` (`omarmohamed-909/Tadaruj`) on production branch `main`.
+- Verified the configured roots remain `client` and `server`, respectively. No unrelated repository permissions or project settings were changed.
+- A documentation-only update in both project roots is used to verify GitHub-triggered production deployments without invoking the CLI deployment command.
+
 ## Phase 3 — 28 October 2026
 
 - Separated the Express app from the standalone listener. Vercel imports a default handler; local and Docker processes own the listener and signal handlers.
