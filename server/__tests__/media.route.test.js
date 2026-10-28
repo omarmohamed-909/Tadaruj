@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 vi.mock("../models/user.model.js", () => ({ User: { findById: vi.fn() } }));
 vi.mock("../utils/cloudinary.js", () => ({ createCloudinaryUploadSignature: vi.fn(() => ({ apiKey: "public-key", cloudName: "test", signature: "signed" })), getCloudinaryResource: vi.fn(), readCloudinaryFileHeader: vi.fn(), uploadMedia: vi.fn() }));
 import { User } from "../models/user.model.js";
-import { getCloudinaryResource } from "../utils/cloudinary.js";
+import { createCloudinaryUploadSignature, getCloudinaryResource } from "../utils/cloudinary.js";
 import media from "../routes/media.route.js";
 let server, url;
 beforeEach(async () => {
@@ -24,6 +24,12 @@ const post = (path, body, role) => {
 };
 it("requires a real authenticated session before signing", async () => {
     expect((await post("/upload-signature", { purpose: "profile" })).status).toBe(401);
+});
+it("does not expose provider exceptions through the legacy upload endpoint", async () => {
+    createCloudinaryUploadSignature.mockImplementationOnce(() => { throw new Error("private-provider-key"); });
+    const response = await post("/upload-video-signature", {}, "instructor");
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ success: false, message: "Could not initialize video upload." });
 });
 it("allows a student's own avatar and rejects teaching uploads", async () => {
     const response = await post("/upload-signature", { purpose: "profile" }, "student");

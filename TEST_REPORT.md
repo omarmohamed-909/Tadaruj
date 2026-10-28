@@ -1,5 +1,12 @@
 # سجل التحقق — تدرّج
 
+## Runtime error logging — 28 October 2026
+
+- Migrated 80 handled-error log calls across account, course, progress, purchase, instructor, admin, manual-order, authentication, and media code to the structured logger. Error objects are reduced to known classifications/codes; messages, stacks, nested provider payloads, arbitrary error names/codes, and user records are excluded.
+- Added asynchronous request context so handled errors carry the same server-generated ID as `X-Request-Id`. Concurrent requests remain separate, and background calls do not inherit an exited request's ID. Route templates and static event names avoid logging actual token paths.
+- Removed provider-error reflection from legacy media-upload responses and rejected Stripe webhook responses. Existing authentication, access checks, upload verification, and enrollment behavior remain covered by the backend suite.
+- **328 backend tests and five Chromium journeys passed**, including real isolated MongoDB integration tests and eight new cases covering sensitive-data exclusion, real password-reset failure handling, legacy response sanitization, and asynchronous/concurrent log correlation. Browser checks covered registration, verification, instructor approval, playback progress, direct file upload, catalog pagination, and mobile width.
+
 ## Vercel file uploads — 28 October 2026
 
 - Moved avatar, thumbnail, quiz-image, and lecture-PDF file bodies to signed browser-to-Cloudinary uploads. API save requests contain an asset ID; client-supplied URLs, sizes, and MIME types do not determine the stored file.

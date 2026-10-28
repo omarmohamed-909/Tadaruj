@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import mongoose from "mongoose";
 import { CourseProgress } from "../models/courseProgress.js";
 import { LectureComment } from "../models/lectureComment.model.js";
@@ -117,7 +118,7 @@ export const getCommentNotifications = async (req, res) => {
       notifications,
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.get_comment_notifications.failed", error);
     return res.status(500).json({
       message: "Failed to load comment notifications.",
     });
@@ -160,7 +161,7 @@ export const markCommentNotificationAsRead = async (req, res) => {
       message: "Notification marked as read.",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.mark_comment_notification_as_read.failed", error);
     return res.status(500).json({
       message: "Failed to update notification.",
     });
@@ -187,7 +188,7 @@ export const markAllCommentNotificationsAsRead = async (req, res) => {
       message: "All notifications marked as read.",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.mark_all_comment_notifications_as_read.failed", error);
     return res.status(500).json({
       message: "Failed to update notifications.",
     });
@@ -251,7 +252,7 @@ export const getCourseProgress = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.get_course_progress.failed", error);
     return res.status(500).json({ message: "Failed to load course progress." });
   }
 };
@@ -312,7 +313,7 @@ export const updateCourseProgress = async (req, res) => {
       message: "Course progress updated successfully",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.update_course_progress.failed", error);
     return res.status(500).json({ message: "Failed to update course progress." });
   }
 };
@@ -344,7 +345,7 @@ export const markAsCompleted = async (req, res) => {
       message: "Course marked as completed.",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.mark_as_completed.failed", error);
     return res.status(500).json({ message: "Failed to mark course as completed." });
   }
 };
@@ -376,7 +377,7 @@ export const markAsInCompleted = async (req, res) => {
       message: "Course marked as incompleted.",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.mark_as_in_completed.failed", error);
     return res.status(500).json({ message: "Failed to mark course as incomplete." });
   }
 };
@@ -408,7 +409,7 @@ export const getLectureComments = async (req, res) => {
       comments,
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.get_lecture_comments.failed", error);
     return res.status(500).json({
       message: "Failed to load comments.",
     });
@@ -486,7 +487,7 @@ export const addLectureComment = async (req, res) => {
         isReply: Boolean(parentComment),
       });
     } catch (notificationError) {
-      console.error("Failed to create comment notification:", notificationError);
+      reportError("course_progress.add_lecture_comment.notification_failed", notificationError);
     }
 
     const populatedComment = await LectureComment.findById(comment._id)
@@ -504,7 +505,7 @@ export const addLectureComment = async (req, res) => {
       message: "Comment added successfully.",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.add_lecture_comment.failed", error);
     return res.status(500).json({
       message: "Failed to add comment.",
     });
@@ -558,7 +559,7 @@ export const deleteLectureComment = async (req, res) => {
       message: "Comment deleted successfully.",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.delete_lecture_comment.failed", error);
     return res.status(500).json({
       message: "Failed to delete comment.",
     });
@@ -638,7 +639,7 @@ export const togglePinLectureComment = async (req, res) => {
       message: "Comment unpinned successfully.",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.toggle_pin_lecture_comment.failed", error);
     return res.status(500).json({
       message: "Failed to update pinned comment.",
     });
@@ -755,7 +756,7 @@ export const submitQuizResult = async (req, res) => {
       });
     }
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.submit_quiz_result.failed", error);
     return res.status(500).json({ message: "Failed to save quiz result." });
   }
 };
@@ -793,7 +794,7 @@ export const getCourseQuizResults = async (req, res) => {
       results,
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.get_course_quiz_results.failed", error);
     return res.status(500).json({ message: "Failed to load quiz results." });
   }
 };
@@ -832,7 +833,7 @@ export const getQuizResultHistory = async (req, res) => {
       history: sortedHistory,
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_progress.get_quiz_result_history.failed", error);
     return res.status(500).json({ message: "Failed to load quiz attempt history." });
   }
 };

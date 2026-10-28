@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import express from "express";
 import authorizeRoles from "../middlewares/authorizeRoles.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
@@ -18,7 +19,8 @@ router.post("/upload-signature", isAuthenticated, uploadLimiter, (req, res) => {
     if (!canUploadPurpose(purpose, req.user?.role)) return res.status(403).json({ message: "Upload not allowed." });
     try {
         return res.set("Cache-Control", "no-store").json({ data: createDirectUpload(purpose, req.id) });
-    } catch {
+    } catch (error) {
+        reportError("media.upload_signature.failed", error);
         return res.status(503).json({ message: "Could not initialize upload. Please try again." });
     }
 });
@@ -28,6 +30,7 @@ router.post("/verify-quiz-image", isAuthenticated, authorizeRoles("instructor", 
     try {
         return res.json({ data: await verifyDirectUpload(req.body.publicId, "quiz", req.id) });
     } catch (error) {
+        reportError("media.verify_quiz_image.failed", error);
         return res.status(error.uploadStatus || 500).json({ message: error.uploadStatus ? error.message : "Could not verify uploaded file." });
     }
 });
@@ -55,10 +58,10 @@ router.route("/upload-video-signature").post(isAuthenticated, authorizeRoles("in
             },
         });
     } catch (error) {
-        console.error("Failed to create Cloudinary signature:", error?.message || error);
+        reportError("media.video_signature.failed", error);
         return res.status(500).json({
             success: false,
-            message: error?.message || "Could not initialize video upload.",
+            message: "Could not initialize video upload.",
         });
     }
 });
@@ -79,10 +82,10 @@ router.route("/upload-video").post(isAuthenticated, authorizeRoles("instructor",
             data: result
         });
     } catch (error) {
-        console.log(error);
+        reportError("media.upload_video.failed", error);
         res.status(500).json({
             success: false,
-            message: error?.message || "Error uploading file",
+            message: "Error uploading file",
         })
 
     }
@@ -112,10 +115,10 @@ router.route("/upload-image").post(
                 data: result,
             });
         } catch (error) {
-            console.log(error);
+            reportError("media.upload_image.failed", error);
             return res.status(500).json({
                 success: false,
-                message: error?.message || "Error uploading image",
+                message: "Error uploading image",
             });
         }
     }

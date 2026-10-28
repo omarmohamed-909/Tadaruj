@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 vi.mock("../utils/directUploads.js", () => ({ verifyDirectUpload: vi.fn() }));
 import { verifyDirectUpload } from "../utils/directUploads.js";
+import { createLogger, withRequestLogging } from "../utils/logger.js";
 
 vi.mock("../models/user.model.js", () => ({
     User: {
@@ -306,6 +307,19 @@ describe("forgotPassword", () => {
         expect(res.json).toHaveBeenCalledWith(
             expect.objectContaining({ success: true })
         );
+    });
+
+    it("keeps a reset provider's private payload out of logs and the production response", async () => {
+        process.env.NODE_ENV = "production";
+        const write = vi.fn();
+        User.findOne.mockResolvedValue({ _id: "u1", email: "private-email@example.test", save: vi.fn().mockResolvedValue(true) });
+        sendEmail.mockRejectedValueOnce(Object.assign(new Error("private-password https://example.test/reset/private-token"), { code: "EMAIL_DELIVERY_FAILED", response: { body: { token: "private-provider-token" } } }));
+        const res = makeRes();
+        await withRequestLogging({ requestId: "server-reset-id", logger: createLogger(write) }, () => forgotPassword(makeReq({ body: { email: "private-email@example.test" } }), res));
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(write).toHaveBeenCalledOnce();
+        expect(JSON.parse(write.mock.calls[0][0])).toMatchObject({ event: "user.forgot_password.email_failed", requestId: "server-reset-id", errorCode: "EMAIL_DELIVERY_FAILED" });
+        expect(JSON.stringify([write.mock.calls, res.json.mock.calls])).not.toContain("private-");
     });
 
     it("sends a reset email without exposing the link in the response", async () => {

@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
 import { Course } from "../models/course.model.js";
@@ -62,7 +63,7 @@ export const listPublicInstructors = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error("Failed to load instructors:", error);
+    reportError("instructor.list_public_instructors.failed", error);
     return res.status(500).json({ message: "Could not load instructors." });
   }
 };
@@ -100,7 +101,7 @@ export const getPublicInstructor = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error("Failed to load instructor profile:", error);
+    reportError("instructor.get_public_instructor.failed", error);
     return res.status(500).json({ message: "Could not load instructor profile." });
   }
 };

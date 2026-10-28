@@ -1,3 +1,4 @@
+import { reportError } from "./logger.js";
 import { v2 as cloudinary } from 'cloudinary';
 import dotenv from "dotenv";
 dotenv.config({});
@@ -16,7 +17,7 @@ const parseCloudinaryUrl = (cloudinaryUrl) => {
             cloud_name: parsedUrl.hostname || "",
         };
     } catch (error) {
-        console.error("Invalid CLOUDINARY_URL:", error?.message || error);
+        reportError("cloudinary.configuration_invalid", error);
         return null;
     }
 };
@@ -60,7 +61,7 @@ const hasCloudinaryConfig =
     hasCloudinaryUrl || hasSpecificCloudinaryConfig || hasLegacyCloudinaryConfig;
 
 if (!hasCloudinaryConfig) {
-    console.error("Cloudinary config missing. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET on deployment.");
+    reportError("cloudinary.configuration_missing");
 }
 
 if (hasCloudinaryConfig) {
@@ -137,7 +138,7 @@ export const extractPublicIdFromUrl = (mediaUrl) => {
 
         return [...publicIdSegments, normalizedLastSegment].filter(Boolean).join("/");
     } catch (error) {
-        console.error("Failed to extract Cloudinary public ID:", error?.message || error);
+        reportError("cloudinary.extract_public_id.failed", error, "warn");
         return "";
     }
 };
@@ -182,7 +183,7 @@ export const uploadMedia = async (file, options = {}) => {
         });
         return uploadResponse;
     } catch (error) {
-        console.error("Cloudinary upload error:", error?.message || error);
+        reportError("cloudinary.upload_media.failed", error);
         throw new Error("Media upload failed");
     }
 };
@@ -234,7 +235,7 @@ export const deleteMediaFromCloudinary = async (publicId, resourceType = "image"
     try {
         await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, type: deliveryType });
     } catch (error) {
-        console.log(error)
+        reportError("cloudinary.delete_media_from_cloudinary.failed", error)
     }
 };
 
@@ -242,6 +243,6 @@ export const deleteVideoFromCloudinary = async (publicId, deliveryType = "upload
     try {
         await cloudinary.uploader.destroy(publicId,{resource_type:"video", type:deliveryType})
     } catch (error) {
-        console.log(error);
+        reportError("cloudinary.delete_video_from_cloudinary.failed", error);
     }
 }

@@ -6,8 +6,14 @@ import { createLogger } from "../utils/logger.js";
 
 vi.mock("../routes/admin.route.js", async () => {
   const { Router } = await import("express");
+  const { reportError } = await import("../utils/logger.js");
   const router = Router();
   router.post("/failure/:token", () => { throw new Error("private-provider-key"); });
+  router.post("/reported/:token", async (_req, res) => {
+    await new Promise((resolve) => setImmediate(resolve));
+    reportError("admin.operation.failed", new Error("private-provider-payload"));
+    res.status(503).json({ message: "Service unavailable." });
+  });
   return { default: router };
 });
 vi.mock("../routes/purchaseCourse.route.js", async () => {
@@ -34,6 +40,14 @@ async function boot(options = {}) {
 }
 
 describe("operational HTTP contract", () => {
+  it("correlates handled asynchronous errors with the server's ID rather than client input", async () => {
+    const { get, logger } = await boot();
+    const response = await get("/api/v1/admin/reported/private-path-token?email=private-email", { method: "POST", headers: { "X-Request-Id": "private-client-id", "Content-Type": "application/json" }, body: '{"password":"private-password"}' });
+    expect(response.status).toBe(503);
+    const event = logger.mock.calls.find((call) => call[1] === "admin.operation.failed");
+    expect(event).toEqual(["error", "admin.operation.failed", { requestId: response.headers.get("x-request-id"), errorType: "Error" }]);
+    expect(JSON.stringify(logger.mock.calls)).not.toContain("private-");
+  });
   it("keeps liveness independent of the database and makes readiness uncached", async () => {
     const { get, connectDatabase } = await boot();
     const live = await get("/health/live");

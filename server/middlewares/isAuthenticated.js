@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 
@@ -54,7 +55,7 @@ const isAuthenticated =async(req ,res,next)=>{
         req.authToken = verifiedToken;
         next();
     } catch (error) {
-        console.log(error);
+        reportError("auth.authenticate.failed", error);
         return res.status(401).json({
             message:"Invalid token",
             success:false

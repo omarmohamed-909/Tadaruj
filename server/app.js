@@ -14,7 +14,7 @@ import purchaseRoute from "./routes/purchaseCourse.route.js";
 import courseProgressRoute from "./routes/courseProgress.route.js";
 import adminRoute from "./routes/admin.route.js";
 import { createFrontendOriginCheck } from "./utils/frontendOrigins.js";
-import { logger as defaultLogger } from "./utils/logger.js";
+import { logger as defaultLogger, withRequestLogging } from "./utils/logger.js";
 
 async function databaseReady(connectDatabase) {
   await connectDatabase();
@@ -42,7 +42,7 @@ export function createApp({ env = process.env, connectDatabase = connectDB, chec
         status: res.statusCode, durationMs: Math.round(performance.now() - start),
       });
     });
-    next();
+    withRequestLogging({ requestId: req.requestId, logger }, next);
   });
   const allowed = createFrontendOriginCheck(env);
   app.use(cors({

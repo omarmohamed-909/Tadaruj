@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import mongoose from "mongoose";
 import { verifyDirectUpload } from "../utils/directUploads.js";
 import { Course } from "../models/course.model.js";
@@ -121,7 +122,7 @@ export const createCourse = async (req,res) => {
             message:"Course created."
         })
     } catch (error) {
-        console.log(error);
+        reportError("course.create_course.failed", error);
         return res.status(500).json({
             message:"Failed to create course"
         })
@@ -184,7 +185,7 @@ export const searchCourse = async (req,res) => {
         });
 
     } catch (error) {
-        console.log(error);
+        reportError("course.search_course.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to search courses"
@@ -198,7 +199,7 @@ export const getPublishedCourse = async (req, res) => {
         if (!pagination) return res.status(400).json({ message: "Invalid course pagination." });
         return res.status(200).json(await readPublicCoursePage({ isPublished: true }, pagination));
     } catch (error) {
-        console.log(error);
+        reportError("course.get_published_course.failed", error);
         return res.status(500).json({ message: "Failed to get published courses" });
     }
 };
@@ -235,7 +236,7 @@ export const getCreatorCourses = async (req,res) => {
             courses,
         })
     } catch (error) {
-        console.log(error);
+        reportError("course.get_creator_courses.failed", error);
         return res.status(500).json({
             message:"Failed to create course"
         })
@@ -290,7 +291,7 @@ export const editCourse = async (req,res) => {
         course = await Course.findByIdAndUpdate(courseId, update, { new: true, runValidators: true });
         if (courseThumbnail?.secure_url && previousThumbnail) {
             const oldPublicId = extractPublicIdFromUrl(previousThumbnail);
-            if (oldPublicId) await deleteMediaFromCloudinary(oldPublicId, "image").catch((error) => console.error("Old thumbnail cleanup failed:", error));
+            if (oldPublicId) await deleteMediaFromCloudinary(oldPublicId, "image").catch((error) => reportError("course.edit_course.thumbnail_cleanup_failed", error));
         }
 
         return res.status(200).json({
@@ -299,7 +300,7 @@ export const editCourse = async (req,res) => {
         })
 
     } catch (error) {
-        console.log(error);
+        reportError("course.edit_course.failed", error);
         return res.status(error.uploadStatus || 500).json({
             message: error.uploadStatus ? error.message : "Failed to create course"
         })
@@ -379,13 +380,13 @@ export const deleteCourse = async (req, res) => {
         ]);
 
         await Course.findByIdAndDelete(courseObjectId);
-        await AuditLog.create({ actor: req.id, action: "course.deleted", targetType: "Course", targetId: courseId, metadata: { title: course.courseTitle }, ip: req.ip }).catch((error) => console.error("Audit logging failed:", error));
+        await AuditLog.create({ actor: req.id, action: "course.deleted", targetType: "Course", targetId: courseId, metadata: { title: course.courseTitle }, ip: req.ip }).catch((error) => reportError("course.delete_course.audit_failed", error));
 
         return res.status(200).json({
             message: "Course deleted successfully.",
         });
     } catch (error) {
-        console.log(error);
+        reportError("course.delete_course.failed", error);
         return res.status(500).json({
             message: "Failed to delete course.",
         });
@@ -432,7 +433,7 @@ const loadCourseById = async (req, res, publishedOnly = false) => {
             course: { ...course.toObject(), lectures: safeLectures },
         });
     } catch (error) {
-        console.log(error);
+        reportError("course.load_course_by_id.failed", error);
         return res.status(500).json({ message: "Failed to get course by id" });
     }
 };
@@ -466,7 +467,7 @@ export const createLecture = async (req,res) => {
         });
 
     } catch (error) {
-        console.log(error);
+        reportError("course.create_lecture.failed", error);
         return res.status(500).json({
             message:"Failed to create lecture"
         })
@@ -528,7 +529,7 @@ export const getCourseLecture = async (req, res) => {
         });
         return res.status(200).json({ lectures: safeLectures });
     } catch (error) {
-        console.log(error);
+        reportError("course.get_course_lecture.failed", error);
         return res.status(500).json({ message: "Failed to get lectures" });
     }
 };
@@ -554,7 +555,7 @@ export const editLecture = async (req,res) => {
         let videoInfo = req.body.videoInfo;
         if (typeof videoInfo === "string") {
             try { videoInfo = JSON.parse(videoInfo); } catch (parseErr) {
-                console.warn("editLecture: failed to parse videoInfo JSON:", parseErr?.message);
+                reportError("course.edit_lecture.invalid_video_info", parseErr, "warn");
                 videoInfo = null;
             }
         }
@@ -659,7 +660,7 @@ export const editLecture = async (req,res) => {
             message:"Lecture updated successfully."
         })
     } catch (error) {
-        console.log(error);
+        reportError("course.edit_lecture.failed", error);
         return res.status(error.uploadStatus || 500).json({
             message: error.uploadStatus ? error.message : "Failed to edit lectures"
         })
@@ -712,7 +713,7 @@ export const reorderLecture = async (req,res) => {
             message: `Lecture moved ${direction} successfully.`
         });
     } catch (error) {
-        console.log(error);
+        reportError("course.reorder_lecture.failed", error);
         return res.status(500).json({
             message: "Failed to reorder lecture"
         });
@@ -754,7 +755,7 @@ export const removeLecture = async (req,res) => {
             message:"Lecture removed successfully."
         })
     } catch (error) {
-        console.log(error);
+        reportError("course.remove_lecture.failed", error);
         return res.status(500).json({
             message:"Failed to remove lecture"
         })
@@ -776,7 +777,7 @@ export const getLectureById = async (req,res) => {
             attachmentDownloadUrl: getProtectedMediaUrl(data.attachmentUrl, data.attachmentPublicId, "raw"),
         } });
     } catch (error) {
-        console.log(error);
+        reportError("course.get_lecture_by_id.failed", error);
         return res.status(500).json({
             message:"Failed to get lecture by id"
         })
@@ -815,14 +816,14 @@ export const togglePublishCourse = async (req,res) => {
         if (course.courseLevel === "") course.courseLevel = undefined;
         course.isPublished = publish === "true";
         await course.save();
-        await AuditLog.create({ actor: req.id, action: course.isPublished ? "course.published" : "course.unpublished", targetType: "Course", targetId: courseId, ip: req.ip }).catch((error) => console.error("Audit logging failed:", error));
+        await AuditLog.create({ actor: req.id, action: course.isPublished ? "course.published" : "course.unpublished", targetType: "Course", targetId: courseId, ip: req.ip }).catch((error) => reportError("course.toggle_publish_course.audit_failed", error));
 
         const statusMessage = course.isPublished ? "Published" : "Unpublished";
         return res.status(200).json({
             message:`Course is ${statusMessage}`
         });
     } catch (error) {
-        console.log(error);
+        reportError("course.toggle_publish_course.failed", error);
         return res.status(500).json({
             message:"Failed to update status"
         })
@@ -840,7 +841,7 @@ export const getAdminManageableCourses = async (_req, res) => {
             courses,
         });
     } catch (error) {
-        console.log(error);
+        reportError("course.get_admin_manageable_courses.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to load courses.",
@@ -929,7 +930,7 @@ export const updateLectureQuiz = async (req, res) => {
             message: "Lecture quiz updated successfully.",
         });
     } catch (error) {
-        console.log(error);
+        reportError("course.update_lecture_quiz.failed", error);
         return res.status(error.uploadStatus || 500).json({
             message: error.uploadStatus ? error.message : "Failed to update lecture quiz",
         });

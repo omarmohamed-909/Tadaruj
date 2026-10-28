@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import {User} from "../models/user.model.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken";
@@ -61,7 +62,7 @@ export const sendVerificationEmail = async (user) => {
 
         emailSent = mailResult.sent;
     } catch (error) {
-        console.log(error);
+        reportError("user.send_verification_email.failed", error);
     }
 
     user.emailVerificationSentAt = new Date();
@@ -122,7 +123,7 @@ export const register = async (req ,res) =>{
                 ...buildVerificationResponse(verificationDetails),
        })
     } catch (error) {
-        console.log(error)
+        reportError("user.register.failed", error)
         return res.status(500).json({
             success:false,
             message:"Failded to register"
@@ -162,7 +163,7 @@ export const login = async (req,res) => {
        }
        generateToken(res, user, `welcome back ${user.name}`)
     } catch (error) {
-        console.log(error)
+        reportError("user.login.failed", error)
         return res.status(500).json({
             success:false,
             message:"Failded to login"
@@ -183,7 +184,7 @@ export const logout =async(_,res)=>{
             success:true
         })
     } catch (error) {
-         console.log(error)
+         reportError("user.logout.failed", error)
         return res.status(500).json({
             success:false,
             message:"Failded to Logout"
@@ -214,7 +215,7 @@ export const getUserProfile = async (req,res) =>{
             token: req.authToken || ""
         })
     } catch (error) {
-        console.log(error)
+        reportError("user.get_user_profile.failed", error)
         return res.status(500).json({
             success:false,
             message:"Failded to load user"
@@ -289,7 +290,7 @@ export const updateProfile = async(req,res)=>{
                     photoUploadFailed = true;
                 }
             } catch (uploadError) {
-                console.error("Profile photo upload failed:", uploadError?.message || uploadError);
+                reportError("user.update_profile.photo_upload_failed", uploadError);
                 photoUploadFailed = true;
             }
         }
@@ -410,10 +411,10 @@ export const forgotPassword = async (req, res) => {
             });
             emailSent = result.sent;
             if (!emailSent && process.env.NODE_ENV === "production") {
-                console.error("Password reset email was not sent; check Resend configuration.");
+                reportError("user.forgot_password.email_not_sent", undefined, "warn");
             }
         } catch (mailError) {
-            console.error("Password reset email delivery failed:", mailError);
+            reportError("user.forgot_password.email_failed", mailError);
         }
         const allowLocalLink = process.env.NODE_ENV !== "production"
             && process.env.ALLOW_DEV_RESET_LINKS === "true"
@@ -425,7 +426,7 @@ export const forgotPassword = async (req, res) => {
             ...(allowLocalLink ? { resetPath, resetUrl } : {}),
         });
     } catch (error) {
-        console.log(error);
+        reportError("user.forgot_password.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to process forgot password request.",
@@ -471,7 +472,7 @@ export const verifyEmail = async (req, res) => {
             message: "Email verified successfully. You can log in now.",
         });
     } catch (error) {
-        console.log(error);
+        reportError("user.verify_email.failed", error);
         return res.status(400).json({
             success: false,
             message: "Verification link is invalid or expired.",
@@ -527,7 +528,7 @@ export const resendVerificationEmail = async (req, res) => {
             ...buildVerificationResponse(verificationDetails),
         });
     } catch (error) {
-        console.log(error);
+        reportError("user.resend_verification_email.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to resend verification email.",
@@ -578,7 +579,7 @@ export const resetPassword = async (req, res) => {
             message: "Password reset successfully.",
         });
     } catch (error) {
-        console.log(error);
+        reportError("user.reset_password.failed", error);
         return res.status(400).json({
             success: false,
             message: "Reset token is invalid or expired.",
@@ -601,7 +602,7 @@ export const getAdminUsers = async (_req, res) => {
             users,
         });
     } catch (error) {
-        console.log(error);
+        reportError("user.get_admin_users.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to load users.",
@@ -653,7 +654,7 @@ export const deleteAdminUser = async (req, res) => {
             message: `User "${user.name}" deleted successfully.`,
         });
     } catch (error) {
-        console.log(error);
+        reportError("user.delete_admin_user.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to delete user.",
@@ -697,7 +698,7 @@ export const updateUserRole = async (req, res) => {
             user: safeUser,
         });
     } catch (error) {
-        console.log(error);
+        reportError("user.update_user_role.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to update user role.",
@@ -781,7 +782,7 @@ export const updateUserCourseAccess = async (req, res) => {
             message: "Course access revoked successfully.",
         });
     } catch (error) {
-        console.log(error);
+        reportError("user.update_user_course_access.failed", error);
         return res.status(500).json({
             success: false,
             message: "Failed to update course access.",
@@ -805,7 +806,7 @@ export const updateUserStatus = async (req, res) => {
         await AuditLog.create({ actor: req.id, action: "user.status.changed", targetType: "User", targetId: userId, metadata: { previousStatus, status }, ip: req.ip });
         return res.json({ success: true, message: `Account ${status}.`, status });
     } catch (error) {
-        console.error(error);
+        reportError("user.update_user_status.failed", error);
         return res.status(500).json({ success: false, message: "Could not update account status." });
     }
 };

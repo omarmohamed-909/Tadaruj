@@ -83,7 +83,9 @@ On `SIGTERM` or `SIGINT`, long-running servers mark themselves unavailable, stop
 
 ## Logs and monitoring
 
-New request logs use JSON with timestamp, level, server-generated request ID, method, route template, status, and duration. The HTTP error wrapper does not log request bodies, actual token paths, queries, cookies, authorization headers, or exception messages. The same request ID is returned in `X-Request-Id` and central error responses. Existing controller/provider logs have not all been migrated to this logger; keep hosting logs private.
+Runtime request and handled-error logs use JSON. Request records contain timestamp, level, server-generated request ID, method, route template, status, and duration. Controller, authentication, and media errors record a fixed operation event plus a known error classification/code. They do not serialize error messages, stacks, provider responses, request bodies, actual token paths, queries, cookies, authorization headers, or user records.
+
+Request context follows asynchronous work and stays separate for concurrent requests. The same server-generated ID appears in `X-Request-Id`, central error responses, and handled-error records. For a failed request, copy that response header from the browser's Network panel and search the API logs for its ID. Client-supplied request IDs are not trusted. Background/configuration failures have no unrelated request ID; hosting logs should still remain private.
 
 Once the service exists, configure your chosen monitoring service to check readiness, report repeated failures and elevated 5xx rates, and monitor process restarts. Use the request ID to investigate reports. No monitoring account, paid plan, or scheduled task is created by this repository.
 

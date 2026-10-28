@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import Stripe from "stripe";
 import { Course } from "../models/course.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
@@ -133,7 +134,7 @@ export const createCheckoutSession = async (req, res) => {
       url: session.url, //return the stripe url
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_purchase.create_checkout_session.failed", error);
     return res.status(500).json({
       success: false,
       message: "Failed to create checkout session.",
@@ -151,8 +152,8 @@ export const stripeWebhook = async (req, res) => {
 
     event = stripe.webhooks.constructEvent(req.body, signature, secret);
   } catch (error) {
-    console.error("webhook error", error.message);
-    return res.status(400).send(`webhook error: ${error.message}`);
+    reportError("course_purchase.stripe_webhook.signature_invalid", error, "warn");
+    return res.status(400).send("Invalid webhook signature.");
   }
 
   // Handle the checkout session completed event
@@ -161,7 +162,7 @@ export const stripeWebhook = async (req, res) => {
       const session = event.data.object;
       await finalizePurchase(session.id, session.amount_total);
     } catch (error) {
-      console.error("Error handling event", error);
+      reportError("course_purchase.stripe_webhook.error_handling_event", error);
       return res.status(400).json({ message: "Internal server error" });
     }
   }
@@ -201,7 +202,7 @@ export const verifyCheckoutSession = async (req, res) => {
       message: "Purchase verified successfully.",
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_purchase.verify_checkout_session.failed", error);
     return res.status(500).json({
       message: "Failed to verify purchase.",
     });
@@ -314,7 +315,7 @@ export const getCourseDetailWithPurchaseStatus = async (req, res) => {
       pendingManualOrder: pendingManualOrder ? { reference: pendingManualOrder.paymentId.replace(/^manual-/, "").slice(0, 12).toUpperCase(), createdAt: pendingManualOrder.createdAt } : null,
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_purchase.get_course_detail_with_purchase_status.failed", error);
     return res.status(500).json({ message: "Failed to load course details." });
   }
 };
@@ -331,7 +332,7 @@ export const getAllPurchasedCourse = async (_, res) => {
         try {
           await reconcilePendingPurchase(purchase);
         } catch (error) {
-          console.log(error);
+          reportError("course_purchase.get_all_purchased_course.failed", error);
         }
       })
     );
@@ -348,7 +349,7 @@ export const getAllPurchasedCourse = async (_, res) => {
       purchasedCourse,
     });
   } catch (error) {
-    console.log(error);
+    reportError("course_purchase.get_all_purchased_course.failed", error);
     return res.status(500).json({ message: "Failed to load purchases." });
   }
 };

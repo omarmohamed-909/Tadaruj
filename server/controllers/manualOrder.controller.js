@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import crypto from "node:crypto";
 import mongoose from "mongoose";
 import { Course } from "../models/course.model.js";
@@ -43,7 +44,7 @@ export const requestManualOrder = async (req, res) => {
     const whatsappUrl = `https://wa.me/${instructor.instructorWhatsapp.slice(1)}?text=${encodeURIComponent(message)}`;
     return res.json({ order: { _id: order._id, reference, status: order.status, amount: order.amount }, whatsappUrl });
   } catch (error) {
-    console.error("Failed to create manual order:", error);
+    reportError("manual_order.request_manual_order.failed", error);
     return res.status(500).json({ message: "Could not create the order." });
   }
 };
@@ -79,7 +80,7 @@ export const listManualOrders = async (req, res) => {
       createdAt: order.createdAt, reviewedAt: order.reviewedAt,
     })) });
   } catch (error) {
-    console.error("Failed to load manual orders:", error);
+    reportError("manual_order.list_manual_orders.failed", error);
     return res.status(500).json({ message: "Could not load orders." });
   }
 };
@@ -133,11 +134,11 @@ export const reviewManualOrder = async (req, res) => {
         : `Your order for ${courseTitle} was rejected by the instructor.`,
       type: order.status === "completed" ? "manual-order-approved" : "manual-order-rejected",
       link: `/course-detail/${order.courseId}`,
-    }).catch((notificationError) => console.error("Manual order notification failed:", notificationError));
-    await AuditLog.create({ actor: req.id, action: decision === "approve" ? "manual_order.approved" : "manual_order.rejected", targetType: "CoursePurchase", targetId: String(orderId), metadata: { courseId: String(order.courseId), studentId: String(order.userId), amount: order.amount }, ip: req.ip }).catch((error) => console.error("Audit logging failed:", error));
+    }).catch((notificationError) => reportError("manual_order.review_manual_order.notification_failed", notificationError));
+    await AuditLog.create({ actor: req.id, action: decision === "approve" ? "manual_order.approved" : "manual_order.rejected", targetType: "CoursePurchase", targetId: String(orderId), metadata: { courseId: String(order.courseId), studentId: String(order.userId), amount: order.amount }, ip: req.ip }).catch((error) => reportError("manual_order.review_manual_order.audit_failed", error));
     return res.json({ message: order.status === "completed" ? "Payment confirmed. Course access granted." : "Order rejected.", status: order.status });
   } catch (error) {
-    console.error("Failed to review manual order:", error);
+    reportError("manual_order.review_manual_order.failed", error);
     return res.status(error.statusCode || 500).json({ message: error.statusCode ? error.message : "Could not review the order." });
   } finally {
     await session?.endSession();

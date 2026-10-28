@@ -1,3 +1,4 @@
+import { reportError } from "../utils/logger.js";
 import crypto from "node:crypto";
 import { AdminInvitation } from "../models/adminInvitation.model.js";
 import { AuditLog } from "../models/auditLog.model.js";
@@ -37,7 +38,7 @@ export const createAdminInvitation = async (req, res) => {
             });
             emailSent = Boolean(result?.sent);
         } catch (error) {
-            console.error("Admin invitation email failed:", error);
+            reportError("admin.create_admin_invitation.email_failed", error);
         }
         if (!emailSent && process.env.NODE_ENV === "production") {
             await AdminInvitation.findByIdAndDelete(invitation._id);
@@ -46,7 +47,7 @@ export const createAdminInvitation = async (req, res) => {
         await AuditLog.create({ actor: req.id, action: "admin.invitation.created", targetType: "AdminInvitation", targetId: invitation._id.toString(), metadata: { email, emailSent }, ip: req.ip });
         return res.status(201).json({ success: true, message: emailSent ? "Invitation sent." : "Invitation created, but email delivery failed.", emailSent, ...(!emailSent && process.env.NODE_ENV !== "production" ? { inviteUrl } : {}) });
     } catch (error) {
-        console.error(error);
+        reportError("admin.create_admin_invitation.failed", error);
         return res.status(500).json({ success: false, message: "Could not create invitation." });
     }
 };
@@ -71,10 +72,10 @@ export const acceptAdminInvitation = async (req, res) => {
             await AdminInvitation.findByIdAndUpdate(invitation._id, { acceptedAt: null });
             throw error;
         }
-        await AuditLog.create({ actor: req.id, action: "admin.invitation.accepted", targetType: "User", targetId: req.id, metadata: { invitationId: invitation._id }, ip: req.ip }).catch((error) => console.error("Audit logging failed:", error));
+        await AuditLog.create({ actor: req.id, action: "admin.invitation.accepted", targetType: "User", targetId: req.id, metadata: { invitationId: invitation._id }, ip: req.ip }).catch((error) => reportError("admin.accept_admin_invitation.audit_failed", error));
         return res.status(200).json({ success: true, message: "Admin access enabled.", user });
     } catch (error) {
-        console.error(error);
+        reportError("admin.accept_admin_invitation.failed", error);
         return res.status(500).json({ success: false, message: "Could not accept invitation." });
     }
 };
