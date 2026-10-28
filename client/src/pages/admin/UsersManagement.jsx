@@ -1,5 +1,8 @@
 import { useUiText, useFeedbackText } from "@/components/useUiText";
 import PageSkeleton from "@/components/PageSkeleton";
+import CoursePagination from "@/components/CoursePagination";
+import BrandedLoader from "@/components/BrandedLoader";
+import { useCanonicalCoursePage, useCoursePage } from "@/components/useCoursePage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +33,7 @@ import {
 } from "@/features/api/authApi";
 import { useGetAdminManageableCoursesQuery } from "@/features/api/courseApi";
 import { BookOpen, Mail, ShieldCheck, Trash2, Users } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const roleBadgeClassName = {
@@ -94,16 +97,25 @@ const CourseAccessCard = ({ course, hasAccess, onAction, isLoading }) => {
 const UsersManagement = () => {
   const feedback = useFeedbackText();
   const ui = useUiText();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
+  const { page, searchParams, setSearchParams, goToPage } = useCoursePage();
+  const query = (searchParams.get("q") || "").slice(0, 100);
+  const roleFilter = ["student", "instructor", "admin"].includes(searchParams.get("role")) ? searchParams.get("role") : "all";
+  const statusFilter = ["active", "suspended"].includes(searchParams.get("status")) ? searchParams.get("status") : "all";
+  const [searchQuery, setSearchQuery] = useState(query);
+  useEffect(() => setSearchQuery(query), [query]);
   const [courseSearchQuery, setCourseSearchQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState(null);
+  useEffect(() => {
+    setSelectedUserId(null);
+    setCourseSearchQuery("");
+  }, [page, query, roleFilter, statusFilter]);
   const [deleteTargetUser, setDeleteTargetUser] = useState(null);
   const [invitationEmail, setInvitationEmail] = useState("");
   const [createAdminInvitation, { isLoading: inviting }] = useCreateAdminInvitationMutation();
 
-  const { data, isLoading, isError, error } = useGetAdminUsersQuery();
-  const { data: coursesData, isLoading: coursesLoading } = useGetAdminManageableCoursesQuery();
+  const { currentData: data, isLoading, isFetching, isError, error, refetch } = useGetAdminUsersQuery({ page, limit: 20, q: query, role: roleFilter, status: statusFilter });
+  useCanonicalCoursePage(data?.page, isFetching, page, setSearchParams);
+  const { data: coursesData, isLoading: coursesLoading } = useGetAdminManageableCoursesQuery(undefined, { skip: !selectedUserId });
   const [updateUserRole, { isLoading: roleLoading }] = useUpdateUserRoleMutation();
   const [updateUserCourseAccess, { isLoading: accessLoading }] = useUpdateUserCourseAccessMutation();
   const [deleteAdminUser, { isLoading: deleteLoading }] = useDeleteAdminUserMutation();
@@ -111,22 +123,19 @@ const UsersManagement = () => {
 
   const users = data?.users ?? [];
   const manageableCourses = coursesData?.courses ?? [];
-  const filteredUsers = users.filter((user) => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const matchesRole = roleFilter === "all" ? true : user.role === roleFilter;
-
-    if (!matchesRole) {
-      return false;
-    }
-
-    if (!normalizedQuery) {
-      return true;
-    }
-
-    return [user.name, user.email, user.role].some((value) =>
-      value?.toLowerCase().includes(normalizedQuery)
-    );
-  });
+  const filteredUsers = users;
+  const updateFilters = (changes) => {
+    setSelectedUserId(null);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("page");
+      for (const [key, value] of Object.entries(changes)) {
+        if (!value || value === "all") next.delete(key);
+        else next.set(key, value);
+      }
+      return next;
+    });
+  };
 
   const selectedUser = users.find((user) => user._id === selectedUserId) || null;
   const filteredManageableCourses = manageableCourses.filter((course) => {
@@ -216,6 +225,7 @@ const UsersManagement = () => {
     return (
       <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
         {feedback(error?.data?.message, ui("Failed to load users."))}
+        <Button variant="outline" className="ms-3" onClick={refetch}>{ui("Retry")}</Button>
       </div>
     );
   }
@@ -236,11 +246,11 @@ const UsersManagement = () => {
           <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:w-[360px]">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900/70 sm:px-4 sm:py-3">
               <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{ui("Users")}</p>
-              <p className="mt-1 text-xl font-bold text-slate-950 dark:text-slate-100 sm:text-2xl">{users.length}</p>
+              <p className="mt-1 text-xl font-bold text-slate-950 dark:text-slate-100 sm:text-2xl">{data?.total ?? 0}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-900/70 sm:px-4 sm:py-3">
-              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{ui("Courses")}</p>
-              <p className="mt-1 text-xl font-bold text-slate-950 dark:text-slate-100 sm:text-2xl">{manageableCourses.length}</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{ui("Showing")}</p>
+              <p className="mt-1 text-xl font-bold text-slate-950 dark:text-slate-100 sm:text-2xl">{users.length}</p>
             </div>
           </div>
         </div>
@@ -248,11 +258,11 @@ const UsersManagement = () => {
 
       <form onSubmit={handleInviteAdmin} className="flex flex-col gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 dark:border-teal-900 dark:bg-teal-950/30 sm:flex-row sm:items-end">
         <div className="grow"><Label htmlFor="admin-invite-email">{ui("Invite an existing user as Admin")}</Label><Input id="admin-invite-email" className="mt-2 bg-white dark:bg-slate-950" type="email" required value={invitationEmail} onChange={(event) => setInvitationEmail(event.target.value)} placeholder="person@example.com" /></div>
-        <Button type="submit" disabled={inviting}>{inviting ? "Sending…" : ui("Send invitation")}</Button>
+        <Button type="submit" disabled={inviting}>{inviting ? ui("Sending…") : ui("Send invitation")}</Button>
       </form>
 
-      <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:rounded-4xl sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <form onSubmit={(event) => { event.preventDefault(); updateFilters({ q: searchQuery.trim() }); }} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950 sm:rounded-4xl sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <div>
               <Label htmlFor="user-search" className="text-sm font-semibold text-slate-900 dark:text-slate-100">{" "}{ui("Search users")}{" "}</Label>
@@ -264,7 +274,7 @@ const UsersManagement = () => {
                   key={item.value}
                   type="button"
                   variant={roleFilter === item.value ? "default" : "outline"}
-                  onClick={() => setRoleFilter(item.value)}
+                  onClick={() => updateFilters({ role: item.value })}
                   className="h-9 rounded-full px-4 text-sm"
                 >
                   {ui(item.label)}
@@ -272,17 +282,34 @@ const UsersManagement = () => {
               ))}
             </div>
           </div>
-          <Input
-            id="user-search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder={ui("Search by name, email, or role")}
-            className="w-full max-w-md rounded-2xl"
-          />
+          <div className="flex w-full max-w-md flex-wrap gap-2">
+            <Input
+              id="user-search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              maxLength={100}
+              placeholder={ui("Search by name, email, or role")}
+              className="min-w-0 flex-1 rounded-2xl"
+            />
+            <Button type="submit">{ui("Search users")}</Button>
+            <div className="w-full">
+              <Label htmlFor="user-status-filter">{ui("Account status")}</Label>
+              <Select value={statusFilter} onValueChange={(status) => updateFilters({ status })}>
+                <SelectTrigger id="user-status-filter" className="mt-2"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{ui("All statuses")}</SelectItem>
+                  <SelectItem value="active">{ui("Active")}</SelectItem>
+                  <SelectItem value="suspended">{ui("Suspended")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(query || roleFilter !== "all" || statusFilter !== "all") && <Button type="button" variant="outline" onClick={() => { setSearchQuery(""); updateFilters({ q: "", role: "all", status: "all" }); }}>{ui("Clear filters")}</Button>}
+          </div>
         </div>
-      </div>
+      </form>
 
-      <div className="grid gap-3 sm:gap-5 xl:grid-cols-2">
+      {isFetching && <BrandedLoader variant="inline" />}
+      <div aria-busy={isFetching} className="grid gap-3 sm:gap-5 xl:grid-cols-2">
         {filteredUsers.map((user) => (
           <div
             key={user._id}
@@ -312,7 +339,7 @@ const UsersManagement = () => {
             <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
               <div>
                 <Label className="text-sm font-semibold text-slate-900 dark:text-slate-100">{ui("Role")}</Label>
-                <Select value={user.role} disabled={user.role === "admin"} onValueChange={(value) => handleRoleChange(user._id, value)}>
+                <Select value={user.role} disabled={user.role === "admin" || roleLoading || isFetching} onValueChange={(value) => handleRoleChange(user._id, value)}>
                   <SelectTrigger className="mt-2 rounded-2xl">
                     <SelectValue placeholder={ui("Select role")} />
                   </SelectTrigger>
@@ -324,7 +351,7 @@ const UsersManagement = () => {
                 </Select>
               </div>
               <div className="flex items-center gap-2">
-                {user.role !== "admin" && <Button type="button" variant="outline" disabled={statusLoading} onClick={() => handleStatusChange(user)} className="h-10 rounded-2xl px-3 text-xs font-semibold sm:text-sm">
+                {user.role !== "admin" && <Button type="button" variant="outline" disabled={statusLoading || isFetching} onClick={() => handleStatusChange(user)} className="h-10 rounded-2xl px-3 text-xs font-semibold sm:text-sm">
                   {user.status === "suspended" ? ui("Reactivate") : ui("Suspend")}
                 </Button>}
                 <Button
@@ -338,7 +365,7 @@ const UsersManagement = () => {
                   type="button"
                   variant="outline"
                   size="icon"
-                  disabled={deleteLoading || user.role === "admin"}
+                  disabled={deleteLoading || isFetching || user.role === "admin"}
                   onClick={() => setDeleteTargetUser(user)}
                   className="h-10 w-10 shrink-0 rounded-2xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-950/30"
                 >
@@ -366,12 +393,14 @@ const UsersManagement = () => {
         ))}
       </div>
 
-      {!filteredUsers.length && (
+      {!isFetching && !filteredUsers.length && (
         <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900/40">
           <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{ui("No matching users found")}</p>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{" "}{ui("Try a different name, email, or role.")}{" "}</p>
         </div>
       )}
+
+      <CoursePagination label={ui("User pages")} page={data?.page ?? page} totalPages={data?.totalPages ?? 0} busy={isFetching} onPageChange={goToPage} />
 
       <Dialog open={Boolean(deleteTargetUser)} onOpenChange={(open) => { if (!open) setDeleteTargetUser(null); }}>
         <DialogContent className="w-[94vw] rounded-3xl border border-slate-200 dark:border-slate-800 sm:w-full">
@@ -462,7 +491,7 @@ const UsersManagement = () => {
                         key={course._id}
                         course={course}
                         hasAccess
-                        isLoading={accessLoading}
+                        isLoading={accessLoading || isFetching}
                         onAction={() => handleCourseAccess(course._id, "revoke")}
                       />
                     ))}
@@ -485,7 +514,7 @@ const UsersManagement = () => {
                         key={course._id}
                         course={course}
                         hasAccess={false}
-                        isLoading={accessLoading}
+                        isLoading={accessLoading || isFetching}
                         onAction={() => handleCourseAccess(course._id, "grant")}
                       />
                     ))}

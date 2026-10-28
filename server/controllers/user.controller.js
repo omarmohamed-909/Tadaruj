@@ -1,4 +1,5 @@
 import { reportError } from "../utils/logger.js";
+import { readAdminUserFilters } from "../utils/adminUsers.js";
 import {User} from "../models/user.model.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken";
@@ -587,19 +588,28 @@ export const resetPassword = async (req, res) => {
     }
 }
 
-export const getAdminUsers = async (_req, res) => {
+export const getAdminUsers = async (req, res) => {
     try {
-        const users = await User.find()
+        const parsed = readAdminUserFilters(req.query);
+        if (!parsed) return res.status(400).json({ success: false, message: "Invalid user filters." });
+        const { filter, limit } = parsed;
+        const total = await User.countDocuments(filter);
+        const totalPages = Math.ceil(total / limit);
+        const page = Math.min(parsed.page, Math.max(1, totalPages));
+        const users = await User.find(filter)
             .select("name email role status photoUrl enrolledCourses createdAt")
             .populate({
                 path: "enrolledCourses",
                 select: "courseTitle courseThumbnail coursePrice isPublished",
             })
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1, _id: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
 
         return res.status(200).json({
             success: true,
             users,
+            page, limit, total, totalPages,
         });
     } catch (error) {
         reportError("user.get_admin_users.failed", error);

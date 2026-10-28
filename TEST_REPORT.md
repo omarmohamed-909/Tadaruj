@@ -1,5 +1,12 @@
 # سجل التحقق — تدرّج
 
+## Admin user search and pagination — 29 October 2026
+
+- Admin user listing now returns 20 users by default, with a hard maximum of 50. Name/email/role search and role/status filtering execute on the server. Typed filter validation, escaped regex text, stable creation-time/ID ordering, and a matching-user total keep navigation predictable. Obsolete pages clamp to the last available page; empty results use page one. Legacy accounts without a stored status remain included in the active filter.
+- The interface preserves search, role, status, and page in the URL, supports history/reload and clearing filters, and loads the course-access catalog only when its dialog opens. Mutation tag invalidation refreshes every affected user-page cache; the old optimistic updates tied to a single unparameterized cache were removed. Course-access results remain loaded as a complete catalog once that dialog opens; this change does not paginate that separate endpoint.
+- Added an isolated MongoDB/HTTP suite covering admin-only access, private-field exclusion, search outside the current page, combined filters, malformed queries, page limits, stable sorting, and recovery after deletion. The strict test runner gives this suite its own fresh database. Added UI/cache tests and a Chromium admin journey covering search, history, lazy course access, Arabic, and mobile width.
+- Local validation: **342 backend tests**, **131 frontend tests**, and **six Chromium journeys passed**. Reviewed desktop and Arabic mobile screenshots. Frontend lint, production build, and startup budget passed; deferred video-engine bundle warnings remain.
+
 ## Runtime error logging — 28 October 2026
 
 - Migrated 80 handled-error log calls across account, course, progress, purchase, instructor, admin, manual-order, authentication, and media code to the structured logger. Error objects are reduced to known classifications/codes; messages, stacks, nested provider payloads, arbitrary error names/codes, and user records are excluded.

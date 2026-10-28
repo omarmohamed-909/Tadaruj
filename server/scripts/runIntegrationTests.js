@@ -12,12 +12,12 @@ try {
 } finally { await connection.close(); }
 
 const database = () => `${base}/tadaruj_test_${randomBytes(12).toString("hex")}?replicaSet=codex-test`;
-const args = process.argv.includes("--all") ? [] : ["__tests__/journey.integration.test.js", "__tests__/googleAuth.integration.test.js", "__tests__/catalog.integration.test.js"];
+const args = process.argv.includes("--all") ? [] : ["__tests__/journey.integration.test.js", "__tests__/googleAuth.integration.test.js", "__tests__/catalog.integration.test.js", "__tests__/adminUsers.integration.test.js"];
 const child = spawn(process.execPath, [fileURLToPath(new URL("../node_modules/vitest/vitest.mjs", import.meta.url)), "run", ...args], {
   cwd: fileURLToPath(new URL("../", import.meta.url)),
   stdio: "inherit",
   windowsHide: true,
-  env: { ...process.env, NODE_ENV: "test", EMAIL_DELIVERY_ENABLED: "false", TEST_MONGO_URI: database(), TEST_GOOGLE_MONGO_URI: database(), TEST_CATALOG_MONGO_URI: database() },
+  env: { ...process.env, NODE_ENV: "test", EMAIL_DELIVERY_ENABLED: "false", TEST_MONGO_URI: database(), TEST_GOOGLE_MONGO_URI: database(), TEST_CATALOG_MONGO_URI: database(), TEST_ADMIN_MONGO_URI: database() },
 });
 child.on("error", (error) => { console.error(error.message); process.exitCode = 1; });
 child.on("exit", (code) => { process.exitCode = code ?? 1; });

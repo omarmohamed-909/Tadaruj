@@ -29,6 +29,8 @@ try {
 await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 10000 });
 const password = "Local-E2E-password-2026!";
 const instructor = await User.create({ name: "E2E Instructor", email: "e2e-instructor@example.test", password: await bcrypt.hash(password, 10), role: "instructor", emailVerified: true, instructorWhatsapp: "+201000000000", instructorSubjects: ["Science"] });
+const admin = await User.create({ name: "E2E Admin", email: "e2e-admin@example.test", password: instructor.password, role: "admin", emailVerified: true });
+await User.insertMany(Array.from({ length: 25 }, (_, index) => ({ name: `E2E Member ${String(index).padStart(2, "0")}`, email: `e2e-member-${index}@example.test`, password: instructor.password, role: "student", emailVerified: true, status: index % 5 === 0 ? "suspended" : "active", createdAt: new Date("2025-01-01") })));
 const lecture = await Lecture.create({ lectureTitle: "E2E playback lesson", videoUrl: "http://127.0.0.1:8094/lesson.webm", description: "A synthetic two-second test video." });
 const courses = await Course.insertMany(Array.from({ length: 26 }, (_, index) => ({
   courseTitle: index === 0 ? "E2E Physics Journey" : `E2E Course ${String(index).padStart(2, "0")}`,
@@ -36,7 +38,7 @@ const courses = await Course.insertMany(Array.from({ length: 26 }, (_, index) =>
   coursePrice: 250, ...(index === 0 ? { lectures: [lecture._id] } : {}),
 })));
 await Course.create({ courseTitle: "E2E unpublished draft", creator: instructor._id, subject: "Unreleased", isPublished: false });
-await writeFile(`${directory}e2e-fixtures.json`, JSON.stringify({ instructorId: String(instructor._id), instructorEmail: instructor.email, password, courseId: String(courses[0]._id), lectureId: String(lecture._id), courseCount: 26 }));
+await writeFile(`${directory}e2e-fixtures.json`, JSON.stringify({ instructorId: String(instructor._id), instructorEmail: instructor.email, adminEmail: admin.email, password, courseId: String(courses[0]._id), lectureId: String(lecture._id), courseCount: 26 }));
 
 // A deterministic local stand-in for the external media provider, not an API bypass.
 const media = http.createServer(async (req, res) => {

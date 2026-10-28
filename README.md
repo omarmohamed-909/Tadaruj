@@ -191,7 +191,7 @@ npm run build --prefix client
 npm run check:bundle --prefix client
 ```
 
-[GitHub Actions](https://github.com/omarmohamed-909/Tadaruj/actions/workflows/ci.yml) runs frontend checks, the full backend suite against an isolated MongoDB replica set, and Chromium browser journeys on pushes and pull requests. Browser tests cover registration, verification, manual enrollment approval, video completion, and catalog pagination. The backend job also verifies the API container and restores a synthetic database backup into a separate empty database.
+[GitHub Actions](https://github.com/omarmohamed-909/Tadaruj/actions/workflows/ci.yml) runs frontend checks, the full backend suite against an isolated MongoDB replica set, and Chromium browser journeys on pushes and pull requests. Browser tests cover registration, verification, manual enrollment approval, video completion, direct file uploads, catalog pagination, and admin user search with Arabic/mobile checks. The backend job also verifies the API container and restores a synthetic database backup into a separate empty database.
 
 The plain backend test command skips database suites without test URIs. Use `npm run test:ci --prefix server` to require them, or `npm run test:e2e --prefix client` for browser tests. See [TESTING.md](TESTING.md) for the isolated database setup, browser installation, test boundaries, and failure artifacts.
 

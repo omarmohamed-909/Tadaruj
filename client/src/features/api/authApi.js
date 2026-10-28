@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { courseApi } from "./courseApi";
+
 import { userLoggedIn, userloggedout } from "../authSlice";
 
 import { API_BASE_URL } from "@/lib/apiBaseUrl";
@@ -56,12 +56,7 @@ const storeUser = (user) => {
     }
 };
 
-const getManageableCourseById = (state, courseId) => {
-    const manageableCourses =
-        courseApi.endpoints.getAdminManageableCourses.select()(state)?.data?.courses ?? [];
 
-    return manageableCourses.find((course) => course._id === courseId) ?? null;
-};
 
 export const authApi = createApi({
     reducerPath: "authApi",
@@ -246,9 +241,10 @@ export const authApi = createApi({
             },
         }),
         getAdminUsers: builder.query({
-            query: () => ({
+            query: ({ page = 1, limit = 20, q = "", role = "all", status = "all" } = {}) => ({
                 url: "admin/users",
                 method: "GET",
+                params: { page, limit, ...(q ? { q } : {}), ...(role !== "all" ? { role } : {}), ...(status !== "all" ? { status } : {}) },
             }),
             providesTags: ["AdminUsers"],
         }),
@@ -258,24 +254,6 @@ export const authApi = createApi({
                 method: "PATCH",
                 body: { role },
             }),
-            async onQueryStarted({ userId, role }, { dispatch, queryFulfilled }) {
-                const patchResult = dispatch(
-                    authApi.util.updateQueryData("getAdminUsers", undefined, (draft) => {
-                        const user = draft?.users?.find((item) => item._id === userId);
-
-                        if (user) {
-                            user.role = role;
-                        }
-                    })
-                );
-
-                try {
-                    await queryFulfilled;
-                } catch (error) {
-                    patchResult.undo();
-                    console.log(error);
-                }
-            },
             invalidatesTags: ["AdminUsers"],
         }),
         updateUserStatus: builder.mutation({
@@ -297,22 +275,6 @@ export const authApi = createApi({
                 url: `admin/users/${userId}`,
                 method: "DELETE",
             }),
-            async onQueryStarted({ userId }, { dispatch, queryFulfilled }) {
-                const patchResult = dispatch(
-                    authApi.util.updateQueryData("getAdminUsers", undefined, (draft) => {
-                        if (draft?.users) {
-                            draft.users = draft.users.filter((item) => item._id !== userId);
-                        }
-                    })
-                );
-
-                try {
-                    await queryFulfilled;
-                } catch (error) {
-                    patchResult.undo();
-                    console.log(error);
-                }
-            },
             invalidatesTags: ["AdminUsers"],
         }),
         updateUserCourseAccess: builder.mutation({
@@ -321,52 +283,6 @@ export const authApi = createApi({
                 method: "PATCH",
                 body: { courseId, action },
             }),
-            async onQueryStarted({ userId, courseId, action }, { dispatch, getState, queryFulfilled }) {
-                const course = getManageableCourseById(getState(), courseId);
-                const patchResult = dispatch(
-                    authApi.util.updateQueryData("getAdminUsers", undefined, (draft) => {
-                        const user = draft?.users?.find((item) => item._id === userId);
-
-                        if (!user) {
-                            return;
-                        }
-
-                        if (!Array.isArray(user.enrolledCourses)) {
-                            user.enrolledCourses = [];
-                        }
-
-                        if (action === "grant") {
-                            const alreadyGranted = user.enrolledCourses.some(
-                                (enrolledCourse) => enrolledCourse._id === courseId
-                            );
-
-                            if (!alreadyGranted) {
-                                user.enrolledCourses.unshift(
-                                    course ?? {
-                                        _id: courseId,
-                                        courseTitle: "Course access",
-                                        creator: null,
-                                        isPublished: false,
-                                    }
-                                );
-                            }
-                        }
-
-                        if (action === "revoke") {
-                            user.enrolledCourses = user.enrolledCourses.filter(
-                                (enrolledCourse) => enrolledCourse._id !== courseId
-                            );
-                        }
-                    })
-                );
-
-                try {
-                    await queryFulfilled;
-                } catch (error) {
-                    patchResult.undo();
-                    console.log(error);
-                }
-            },
             invalidatesTags: ["AdminUsers"],
         }),
     }),

@@ -162,6 +162,45 @@ test("student registers, verifies, requests enrollment, receives instructor appr
   await page.screenshot({ path: test.info().outputPath("student-completed.png"), fullPage: false });
 });
 
+test("admin searches all users, retains page filters, and loads course access on demand", async ({ page }) => {
+  const fixture = await fixtures();
+  await login(page, fixture.adminEmail, fixture.password);
+  let courseReads = 0;
+  page.on("request", request => { if (request.url().includes("/course/admin/manageable-courses")) courseReads++; });
+  await page.goto("/admin/users?q=E2E+Member&role=student&page=2");
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(5);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(5);
+  await page.getByRole("navigation", { name: "User pages", exact: true }).getByRole("button", { name: "Previous", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(20);
+  await page.goBack();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(5);
+  expect(courseReads).toBe(0);
+  await page.getByLabel("Search users", { exact: true }).fill("e2e-member-24@example.test");
+  await page.getByRole("button", { name: "Search users", exact: true }).click();
+  await expect(page).not.toHaveURL(/page=/);
+  await expect(page.getByRole("heading", { level: 2, name: "E2E Member 24", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Manage Course Access", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Manage Course Access", exact: true })).toBeVisible();
+  await expect(dialog.getByText("E2E Physics Journey", { exact: true })).toBeVisible();
+  expect(courseReads).toBe(1);
+  await page.keyboard.press("Escape");
+  await page.getByLabel("Account status", { exact: true }).click();
+  await page.getByRole("option", { name: "Suspended", exact: true }).click();
+  await expect(page.getByText("No matching users found", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Clear filters", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(20);
+  await page.screenshot({ path: test.info().outputPath("admin-users.png"), fullPage: false });
+  await page.getByRole("button", { name: "Change language", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.getByLabel("ابحث عن مستخدم", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: test.info().outputPath("admin-users-ar-mobile.png"), fullPage: false });
+});
+
 test.describe("mobile catalog", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   test("keeps pagination usable without horizontal overflow", async ({ page }) => {

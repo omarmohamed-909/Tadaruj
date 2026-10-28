@@ -57,6 +57,7 @@ const userSchema = new mongoose.Schema({
 },{timestamps:true})
 
 userSchema.index({ role: 1, status: 1, name: 1, _id: 1 });
+userSchema.index({ createdAt: -1, _id: -1 });
 
 // Keep the provider identifier private in API responses without hiding it from validation.
 const hideGoogleId = (_doc, result) => { delete result.googleId; return result; };

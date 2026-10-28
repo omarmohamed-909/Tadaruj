@@ -2,6 +2,14 @@ import { interpolate } from "./localize";
 
 // Interface copy only. Never pass course content or API request values through this map.
 export const interfaceMessages = {
+  "Account status": "حالة الحساب",
+  "All statuses": "كل الحالات",
+  "Active": "نشط",
+  "User pages": "صفحات المستخدمين",
+  "Clear filters": "مسح الفلاتر",
+  "Retry": "إعادة المحاولة",
+  "Sending…": "جارٍ الإرسال…",
+  "Invalid user filters.": "خيارات البحث عن المستخدمين غير صحيحة.",
   "File must be 10 MB or smaller.": "حجم الملف لازم يكون 10 ميجابايت أو أقل.",
   "Choose a JPG, PNG, WebP, GIF or AVIF image.": "اختار صورة بصيغة JPG أو PNG أو WebP أو GIF أو AVIF.",
   "Upload failed. Please try again.": "تعذّر رفع الملف. جرّب مرة تانية.",
