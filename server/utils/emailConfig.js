@@ -13,9 +13,10 @@ export const getEmailConfig = (env = process.env) => {
   const enabled = env.EMAIL_DELIVERY_ENABLED !== "false";
   const address = mailboxAddress(from);
   const testing = address.endsWith("@resend.dev");
+  const demo = env.DEPLOYMENT_STAGE === "demo";
   const credentialsConfigured = /^re_[A-Za-z0-9_-]+$/.test(apiKey) && Boolean(address) && (!replyTo || Boolean(mailboxAddress(replyTo)));
   const testRecipientValid = !testing || Boolean(testRecipient && mailboxAddress(testRecipient) === testRecipient);
   const productionSenderConfigured = credentialsConfigured && enabled && !testing;
-  const configured = credentialsConfigured && enabled && testRecipientValid && (env.NODE_ENV !== "production" || !testing);
+  const configured = credentialsConfigured && enabled && testRecipientValid && (env.NODE_ENV !== "production" || !testing || demo);
   return { apiKey, from, replyTo, testRecipient, enabled, testing, credentialsConfigured, testRecipientValid, configured, productionSenderConfigured };
 };

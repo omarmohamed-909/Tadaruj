@@ -1,6 +1,7 @@
 import Footer from '@/components/Footer'
 import Navbar from '@/components/Navbar'
 import AcademyTheme from '@/components/AcademyTheme'
+import DeploymentNotice from '@/components/DeploymentNotice'
 import { usesAcademyTheme } from '@/lib/academyTheme'
 import React from 'react'
 import { Outlet, useLocation, useMatches } from 'react-router-dom'
@@ -26,6 +27,7 @@ const MainLayout = () => {
         <ScrollToTopOnRouteChange />
         <Navbar/>
         <div className='flex-1 mt-16'>
+            <DeploymentNotice />
             <Outlet />
         </div>
       {!hideFooter && <Footer />}

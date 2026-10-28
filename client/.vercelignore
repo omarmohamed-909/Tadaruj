@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+node_modules
+dist
+.vercel
+e2e
+test-results
+playwright-report
+coverage
+playwright.config.js
+src/__tests__

@@ -55,4 +55,13 @@ describe("setup diagnostics", () => {
   it("rejects ambiguous proxy hop settings", () => {
     for (const value of ["-1", "1oops", "1.5"]) expect(inspectSetup({ ...valid, TRUST_PROXY_HOPS: value }).ready).toBe(false);
   });
+  it("keeps demo mail restriction explicit while preserving production origin and shortcut guards", () => {
+    const demo = { ...valid, DEPLOYMENT_STAGE: "demo", RESEND_FROM_EMAIL: "onboarding@resend.dev", RESEND_TEST_RECIPIENT: "owner@example.test" };
+    expect(inspectSetup(demo).ready).toBe(true);
+    expect(inspectSetup({ ...demo, DEPLOYMENT_STAGE: "production" }).ready).toBe(false);
+    expect(inspectSetup({ ...demo, RESEND_TEST_RECIPIENT: "" }).ready).toBe(false);
+    expect(inspectSetup({ ...demo, ALLOW_DEV_VERIFICATION_LINKS: "true" }).ready).toBe(false);
+    expect(inspectSetup({ ...demo, FRONTEND_URL: "http://example.test" }).ready).toBe(false);
+    expect(inspectSetup({ ...demo, DEPLOYMENT_STAGE: "typo" }).ready).toBe(false);
+  });
 });

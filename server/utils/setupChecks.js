@@ -30,7 +30,8 @@ export function inspectSetup(env = process.env) {
   if (!emailConfig.credentialsConfigured) issues.push("Set RESEND_API_KEY and a valid RESEND_FROM_EMAIL (and valid optional RESEND_REPLY_TO).");
   if (!emailConfig.enabled) issues.push("Email delivery is disabled by EMAIL_DELIVERY_ENABLED=false.");
   if (!emailConfig.testRecipientValid) issues.push("RESEND_TEST_RECIPIENT must be the Resend account owner's email for the resend.dev test sender.");
-  if (env.NODE_ENV === "production" && emailConfig.testing) issues.push("Production email requires a verified sending domain; resend.dev is for testing only.");
+  if (env.NODE_ENV === "production" && emailConfig.testing && env.DEPLOYMENT_STAGE !== "demo") issues.push("Production email requires a verified sending domain; resend.dev is for testing only.");
+  if (present("DEPLOYMENT_STAGE") && !["demo", "production"].includes(env.DEPLOYMENT_STAGE)) issues.push("DEPLOYMENT_STAGE must be demo or production.");
   if (present("GOOGLE_CLIENT_ID") && !google) issues.push("GOOGLE_CLIENT_ID must be a valid Google web application client ID, or left empty to disable Google sign-in.");
   if (env.NODE_ENV === "production" && ["ALLOW_DEV_RESET_LINKS", "ALLOW_DEV_VERIFICATION_LINKS"].some((key) => env[key] === "true")) {
     issues.push("Local development email shortcuts must be disabled in production.");

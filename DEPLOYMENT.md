@@ -33,6 +33,12 @@ Set `VITE_API_BASE_URL` in the **frontend build environment** to the public HTTP
 
 The example environment contains localhost origins and an unusable signing-key placeholder. Do not deploy it unchanged. The API refuses to start in production when required configuration is missing, local verification shortcuts are enabled, origins are malformed, or proxy hops are invalid.
 
+### A hosted demo before buying the email domain
+
+For an explicitly limited demonstration, use `NODE_ENV=production` with `DEPLOYMENT_STAGE=demo` on the API and `VITE_DEPLOYMENT_STAGE=demo` on the frontend. This permits the existing Resend test sender only for the exact `RESEND_TEST_RECIPIENT`; every other recipient is still rejected locally. HTTPS, authentication, enrollment approval, and disabled development verification/reset links remain required. The frontend displays a bilingual notice explaining the mail restriction.
+
+When the platform's email domain is verified, configure its real sender, set the backend stage to `production`, remove the frontend demo stage and the test-recipient setting, and redeploy both projects. Changing `NODE_ENV` to development is not a deployment solution.
+
 ## Run the release checks
 
 From a trusted checkout with the intended backend environment available:

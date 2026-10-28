@@ -16,6 +16,7 @@ beforeEach(() => {
   vi.stubEnv("RESEND_TEST_RECIPIENT", "");
   vi.stubEnv("EMAIL_DELIVERY_ENABLED", "true");
   vi.stubEnv("NODE_ENV", "test");
+  vi.stubEnv("DEPLOYMENT_STAGE", "production");
   send.mockResolvedValue({ data: { id: "email-id" }, error: null });
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -57,6 +58,16 @@ describe("Resend transactional mail", () => {
     vi.stubEnv("NODE_ENV", "production"); vi.stubEnv("RESEND_FROM_EMAIL", "onboarding@resend.dev"); vi.stubEnv("RESEND_TEST_RECIPIENT", message.to);
     expect((await sendEmail(message)).sent).toBe(false);
     expect(send).not.toHaveBeenCalled();
+  });
+  it("allows an explicitly marked demo to send only to its authorized test recipient", async () => {
+    vi.stubEnv("NODE_ENV", "production"); vi.stubEnv("DEPLOYMENT_STAGE", "demo");
+    vi.stubEnv("RESEND_FROM_EMAIL", "onboarding@resend.dev"); vi.stubEnv("RESEND_TEST_RECIPIENT", message.to);
+    expect((await sendEmail(message)).sent).toBe(true);
+    send.mockClear();
+    expect(await sendEmail({ ...message, to: "other@example.test" })).toMatchObject({ sent: false, reason: "test_recipient_only" });
+    expect(send).not.toHaveBeenCalled();
+    vi.stubEnv("RESEND_TEST_RECIPIENT", "");
+    expect((await sendEmail(message)).sent).toBe(false);
   });
   it.each([400, 401, 403, 409, 422])("does not retry or claim success after a permanent %s error", async (statusCode) => {
     send.mockResolvedValue({ data: null, error: { statusCode, message: "private-provider-payload" } });
