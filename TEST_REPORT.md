@@ -1,5 +1,14 @@
 # سجل التحقق — تدرّج
 
+## Hosted Vercel verification — 28 October 2026
+
+- Created independent `tadaruj` and `tadaruj-api` Vercel projects using `client` and `server` roots and Node 22. Production deployments completed and the frontend was promoted to its assigned domain.
+- Explicitly authorized platform service settings were transferred to backend environment secrets. A new session signing secret was generated. Local environment files, CLI tokens, databases, and test artifacts were excluded from deployment uploads.
+- Verified the live API: liveness and warmed readiness return 200; the public catalog returns JSON; anonymous profile access returns 401; the assigned frontend origin receives the expected CORS header. An initial cold readiness probe returned 503 while the database connection was established, followed by successful readiness.
+- Read-only Chromium checks against the deployed frontend passed for home, courses, about, login, and password recovery, including direct route reloads, visible demo notice, mobile width, and no uncaught rendering errors. No users, orders, payments, or real messages were created by these checks.
+- The demo sender remains limited to the configured account-owner mailbox. Explicit demo mode retains production HTTPS/origin checks and forbids development verification/reset shortcuts. Added tests keep other recipients blocked. **290 backend tests passed** locally; frontend lint, build, and startup budget passed, and GitHub CI succeeded for the deployment preparation commit.
+- Google sign-in has not been enabled on the hosted API: its new origin still needs authorization in Google Cloud. The Vercel Git connection was rejected, so current releases use CLI deployment rather than automatic deployment from GitHub pushes.
+
 ## Phase 3 — 28 October 2026
 
 - Separated the Express app from the standalone listener. Vercel imports a default handler; local and Docker processes own the listener and signal handlers.

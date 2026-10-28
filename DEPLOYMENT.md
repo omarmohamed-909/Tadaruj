@@ -2,6 +2,23 @@
 
 The repository now includes health probes, graceful container shutdown, a production configuration gate, and CI checks for the API container and a synthetic database recovery drill. These prepare the application for hosting; they do not provision a domain, database, email sender, or monitoring account.
 
+## Current hosted demo
+
+- Frontend: [tadaruj-phi.vercel.app](https://tadaruj-phi.vercel.app), Vercel project `tadaruj`, root directory `client`.
+- API: [tadaruj-api.vercel.app](https://tadaruj-api.vercel.app/health/live), Vercel project `tadaruj-api`, root directory `server`.
+- Both projects use Node 22. The API uses the platform's existing database and media service with a separate session signing secret. Service credentials are held as backend secrets, not frontend build variables.
+- This is an explicitly marked demo with owner-only Resend test delivery. Google sign-in stays disabled until the new frontend origin is registered in the existing OAuth client and `GOOGLE_CLIENT_ID` is configured on this API.
+- Deployments currently use the CLI. The Git repository connection was not established, so GitHub pushes do not automatically deploy these projects yet.
+
+Run deployments from the **repository root**, because each Vercel project already has its root directory configured:
+
+```sh
+vercel deploy --prod --yes --project tadaruj-api --scope omarmohamed-909s-projects
+vercel deploy --prod --yes --project tadaruj --scope omarmohamed-909s-projects
+```
+
+The API's legacy proxied file uploads remain subject to Vercel's request-size limit; use the existing direct Cloudinary video upload path for large videos. Hosting a demo does not verify off-site backups, general email delivery, or payment receipt.
+
 ## Choose the two deployment roots
 
 Deploy `client/` as a Vite frontend and `server/` as the API. The existing Vercel configurations support separate projects. The API also has a Dockerfile for a long-running service. Use a dedicated MongoDB replica set or Atlas deployment: instructor payment approval requires transactions.
