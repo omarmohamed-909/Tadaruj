@@ -32,6 +32,7 @@ import {
   useUpdateUserMutation,
 } from "@/features/api/authApi";
 import { toast } from "sonner";
+import { directUpload, IMAGE_ACCEPT, uploadErrorMessage, validateUpload } from "@/lib/directUpload";
 
 const Profile = () => {
   const feedback = useFeedbackText();
@@ -41,6 +42,7 @@ const Profile = () => {
   const [instructorSubjects, setInstructorSubjects] = useState("");
   const [instructorWhatsapp, setInstructorWhatsapp] = useState("");
   const [profilePhoto, setProfilePhoto] = useState("");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -62,7 +64,11 @@ const Profile = () => {
 
   const onChangeHandeler = (e) => {
     const file = e.target.files?.[0];
-    if (file) setProfilePhoto(file);
+    if (file) {
+      try { validateUpload(file, "profile"); }
+      catch (error) { toast.error(feedback(uploadErrorMessage(error), ui("Upload failed. Please try again."))); e.target.value = ""; return; }
+      setProfilePhoto(file);
+    }
   };
 
   const updateUserHandler = async () => {
@@ -73,18 +79,20 @@ const Profile = () => {
       formData.append("instructorSubjects", instructorSubjects);
       formData.append("instructorWhatsapp", instructorWhatsapp);
     }
-    if (profilePhoto) {
-      formData.append("profilePhoto", profilePhoto);
-    }
-
+    setIsUploadingPhoto(true);
     try {
+      if (profilePhoto) {
+        const asset = await directUpload(profilePhoto, "profile");
+        formData.append("photoAssetId", asset.public_id);
+      }
       const response = await updateUser(formData).unwrap();
       await refetch();
+      setProfilePhoto("");
       setIsProfileDialogOpen(false);
       toast.success(feedback(response?.message || ui("Profile updated."), ui("Profile updated.")));
     } catch (updateError) {
-      toast.error(feedback(updateError?.data?.message || ui("Faild to update profile."), ui("Faild to update profile.")));
-    }
+      toast.error(feedback(uploadErrorMessage(updateError), ui("Faild to update profile.")));
+    } finally { setIsUploadingPhoto(false); }
   };
 
   const updatePasswordHandler = async () => {
@@ -242,7 +250,7 @@ const Profile = () => {
                         <Input
                           onChange={onChangeHandeler}
                           type="file"
-                          accept="image/*"
+                          accept={IMAGE_ACCEPT}
                         />
                         {profilePhoto && (
                           <p className="text-xs text-slate-500 dark:text-slate-400">{" "}{ui("Selected:")}{" "}{profilePhoto.name}
@@ -270,10 +278,10 @@ const Profile = () => {
                   </div>
                   <DialogFooter className="shrink-0 border-t border-slate-200 px-6 py-4 dark:border-slate-800">
                     <Button
-                      disabled={updateUserIsloading}
+                      disabled={updateUserIsloading || isUploadingPhoto}
                       onClick={updateUserHandler}
                     >
-                      {updateUserIsloading ? (
+                      {updateUserIsloading || isUploadingPhoto ? (
                         <>
                           <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Please Wait")}{" "}</>
                       ) : (

@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import RichTextEditor from "@/components/RichTextEditor";
 import { useEditLectureMutation, useGetLectureByIdQuery, useRemoveLectureMutation, useUpdateLectureQuizMutation } from "@/features/api/courseApi";
 import { secureMediaUrl } from "@/lib/secureMediaUrl";
+import { directUpload, IMAGE_ACCEPT, uploadErrorMessage } from "@/lib/directUpload";
 import axios from "axios";
 import { CheckCircle2, FileText, Image as ImageIcon, Link2, Lock, Paperclip, PlayCircle, Plus, Trash2, UploadCloud, Video } from "lucide-react";
 import BrandedLoader from "@/components/BrandedLoader";
@@ -59,6 +60,7 @@ const LectureTab = () => {
   const [mediaProgress, setMediaProgress] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isProcessingVideo, setIsProcessingVideo] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [uploadingQuestionImageIndex, setUploadingQuestionImageIndex] = useState(null);
   const [descriptionInput, setDescriptionInput] = useState({ description: "" });
   const [pdfFile, setPdfFile] = useState(null);
@@ -231,13 +233,7 @@ const LectureTab = () => {
 
     setUploadingQuestionImageIndex(questionIndex);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadResponse = await axios.post(`${MEDIA_API}/upload-image`, formData, {
-        headers: getAuthHeaders(),
-      });
-
-      const uploadedImage = uploadResponse?.data?.data;
+      const uploadedImage = await directUpload(file, "quiz");
       if (uploadedImage?.secure_url) {
         setQuizQuestions((currentValue) =>
           currentValue.map((question, index) =>
@@ -254,7 +250,7 @@ const LectureTab = () => {
       }
     } catch (error) {
       const errorMessage =
-        error?.response?.data?.message ||
+        uploadErrorMessage(error) ||
         error?.response?.data?.error?.message ||
         ui("Question image upload failed.");
       toast.error(feedback(errorMessage, ui("Something went wrong. Please try again.")));
@@ -405,15 +401,21 @@ const LectureTab = () => {
       return;
     }
 
-    await edtiLecture({
-      lectureTitle,
-      videoInfo:{ videoUrl: uploadVideInfo.videoUrl, publicId: uploadVideInfo.publicId || "" },
-      isPreviewFree:isFree,
-      courseId,
-      lectureId,
-      description: descriptionInput.description,
-      pdfFile,
-    });
+    setIsUploadingAttachment(true);
+    try {
+      const attachment = pdfFile ? await directUpload(pdfFile, "attachment") : null;
+      await edtiLecture({
+        lectureTitle,
+        videoInfo:{ videoUrl: uploadVideInfo.videoUrl, publicId: uploadVideInfo.publicId || "" },
+        isPreviewFree:isFree,
+        courseId,
+        lectureId,
+        description: descriptionInput.description,
+        attachmentAssetId: attachment?.public_id,
+      });
+    } catch (error) {
+      toast.error(feedback(uploadErrorMessage(error), ui("Upload failed. Please try again.")));
+    } finally { setIsUploadingAttachment(false); }
   };
 
   const saveQuizHandler = async () => {
@@ -598,7 +600,7 @@ const LectureTab = () => {
                 </div>
                 {lecture?.attachmentUrl && !pdfFile && (
                   <a
-                    href={lecture.attachmentUrl}
+                    href={lecture.attachmentDownloadUrl || lecture.attachmentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-accent-foreground hover:underline dark:text-accent-foreground"
@@ -666,7 +668,7 @@ const LectureTab = () => {
                         </div>
                         <Input
                           type="file"
-                          accept="image/*"
+                          accept={IMAGE_ACCEPT}
                           onChange={(event) => questionImageChangeHandler(questionIndex, event)}
                           disabled={uploadingQuestionImageIndex === questionIndex}
                           className="mt-2 h-10 rounded-xl"
@@ -810,11 +812,11 @@ const LectureTab = () => {
         <div className="flex flex-col gap-3 border-t border-border pt-5 dark:border-border sm:flex-row sm:items-center sm:justify-between sm:pt-6">
           <p className="text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Save your changes after updating the title, visibility, uploaded video, or YouTube link.")}{" "}</p>
           <Button
-            disabled={isLoading || mediaProgress}
+            disabled={isLoading || isUploadingAttachment || mediaProgress}
             onClick={editLectureHandler}
             className="h-11 w-full rounded-2xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:h-12 sm:w-auto sm:px-6 sm:text-base"
           >
-            {isLoading ? (
+            {isLoading || isUploadingAttachment ? (
               <>
                 <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Please wait")}{" "}</>
             ) : mediaProgress ? (

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { verifyDirectUpload } from "../utils/directUploads.js";
 import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
@@ -273,7 +274,9 @@ export const editCourse = async (req,res) => {
             }
         }
         const previousThumbnail = course.courseThumbnail;
-        const courseThumbnail = thumbnail ? await uploadMedia(thumbnail.buffer || thumbnail.path) : null;
+        const courseThumbnail = req.body.thumbnailAssetId !== undefined
+            ? await verifyDirectUpload(req.body.thumbnailAssetId, "thumbnail", req.id)
+            : thumbnail ? await uploadMedia(thumbnail.buffer || thumbnail.path) : null;
 
         const updateData = { courseTitle: courseTitle === undefined ? undefined : String(courseTitle).trim(), subTitle, description, coursePrice };
         if (normalizedLevel) updateData.courseLevel = normalizedLevel;
@@ -297,8 +300,8 @@ export const editCourse = async (req,res) => {
 
     } catch (error) {
         console.log(error);
-        return res.status(500).json({
-            message:"Failed to create course"
+        return res.status(error.uploadStatus || 500).json({
+            message: error.uploadStatus ? error.message : "Failed to create course"
         })
     }
 }
@@ -603,7 +606,13 @@ export const editLecture = async (req,res) => {
             lecture.description = description;
         }
 
-        // handle PDF attachment upload
+        // Direct uploads send only an asset ID; the server independently verifies it.
+        if (req.body.attachmentAssetId !== undefined) {
+            const attachment = await verifyDirectUpload(req.body.attachmentAssetId, "attachment", req.id);
+            lecture.attachmentUrl = attachment.secure_url;
+            lecture.attachmentPublicId = attachment.public_id;
+        }
+        // Legacy multipart clients are still supported within the host's body limit.
         const attachmentFile = req.file;
         if (attachmentFile) {
             if (attachmentFile.mimetype !== "application/pdf") {
@@ -651,8 +660,8 @@ export const editLecture = async (req,res) => {
         })
     } catch (error) {
         console.log(error);
-        return res.status(500).json({
-            message:"Failed to edit lectures"
+        return res.status(error.uploadStatus || 500).json({
+            message: error.uploadStatus ? error.message : "Failed to edit lectures"
         })
     }
 }
@@ -880,6 +889,19 @@ export const updateLectureQuiz = async (req, res) => {
         });
         if (hasUnownedImage) return res.status(400).json({ message: "Invalid or unowned quiz image." });
 
+        const existingImages = new Map((lecture.quizQuestions || []).map((question) => [question.questionImagePublicId, question.questionImageUrl]));
+        const verifiedImages = new Map();
+        for (const question of sanitizedResult.data) {
+            const id = question.questionImagePublicId;
+            if (!id) continue;
+            if (existingImageIds.has(id)) {
+                question.questionImageUrl = existingImages.get(id) || "";
+            } else {
+                if (!verifiedImages.has(id)) verifiedImages.set(id, await verifyDirectUpload(id, "quiz", req.id));
+                question.questionImageUrl = verifiedImages.get(id).secure_url;
+            }
+        }
+
         // Collect public IDs of images that are no longer referenced after the update
         const newPublicIds = new Set(
             sanitizedResult.data
@@ -908,8 +930,8 @@ export const updateLectureQuiz = async (req, res) => {
         });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({
-            message: "Failed to update lecture quiz",
+        return res.status(error.uploadStatus || 500).json({
+            message: error.uploadStatus ? error.message : "Failed to update lecture quiz",
         });
     }
 }

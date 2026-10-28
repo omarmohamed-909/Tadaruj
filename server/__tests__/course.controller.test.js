@@ -1,4 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
+vi.mock("../utils/directUploads.js", () => ({ verifyDirectUpload: vi.fn() }));
+import { verifyDirectUpload } from "../utils/directUploads.js";
 
 vi.mock("../models/course.model.js", () => ({
     Course: {
@@ -90,6 +92,7 @@ import {
 } from "../utils/cloudinary.js";
 import {
     createCourse,
+    editCourse,
     deleteCourse,
     searchCourse,
     getPublishedCourse,
@@ -1052,12 +1055,26 @@ describe("updateLectureQuiz", () => {
         Course.findById.mockResolvedValue(validCourse("l1"));
         deleteMediaFromCloudinary.mockResolvedValue({});
         extractPublicIdFromUrl.mockReturnValue("lms/quiz-questions/user1/img_new");
+        verifyDirectUpload.mockResolvedValue({ public_id: "lms/quiz-questions/user1/img_new", secure_url: "https://res.cloudinary.com/demo/image/upload/v1/lms/quiz-questions/user1/img_new.jpg" });
 
         await updateLectureQuiz(req, res);
 
         expect(deleteMediaFromCloudinary).toHaveBeenCalledWith("img_old", "image");
         expect(deleteMediaFromCloudinary).not.toHaveBeenCalledWith("lms/quiz-questions/user1/img_new", "image");
         expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("does not save quiz images when provider verification fails", async () => {
+        const lecture = { _id: "l1", quizQuestions: [], save: vi.fn() };
+        Lecture.findById.mockResolvedValue(lecture);
+        Course.findById.mockResolvedValue(validCourse("l1"));
+        const id = "lms/quiz-questions/user1/img_new";
+        extractPublicIdFromUrl.mockReturnValue(id);
+        verifyDirectUpload.mockRejectedValue(Object.assign(new Error("Invalid or unowned upload."), { uploadStatus: 400 }));
+        const res = makeRes();
+        await updateLectureQuiz(makeReq({ params: { courseId: "c1", lectureId: "l1" }, body: { quizQuestions: [{ questionText: "Q", questionImageUrl: `https://evil.test/image/upload/${id}.jpg`, questionImagePublicId: id, options: ["A", "B"], correctOptionIndex: 0 }] } }), res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(lecture.save).not.toHaveBeenCalled();
     });
 
     it("rejects a quiz image that was uploaded outside the current instructor folder", async () => {
@@ -1187,6 +1204,27 @@ describe("getCourseLecture", () => {
 
 // ─── editLecture ──────────────────────────────────────────────────────────────
 
+describe("direct course thumbnail", () => {
+    it("stores the provider-verified URL rather than a browser URL", async () => {
+        Course.findById.mockResolvedValue({ creator: "u1" });
+        Course.findByIdAndUpdate.mockResolvedValue({ _id: "c1" });
+        verifyDirectUpload.mockResolvedValue({ public_id: "owned", secure_url: "verified-image-url" });
+        const res = makeRes();
+        await editCourse(makeReq({ id: "u1", params: { courseId: "c1" }, body: { thumbnailAssetId: "owned", courseThumbnail: "https://evil.test" } }), res);
+        expect(verifyDirectUpload).toHaveBeenCalledWith("owned", "thumbnail", "u1");
+        expect(Course.findByIdAndUpdate).toHaveBeenCalledWith("c1", expect.objectContaining({ $set: expect.objectContaining({ courseThumbnail: "verified-image-url" }) }), expect.any(Object));
+        expect(uploadMedia).not.toHaveBeenCalled();
+    });
+    it("does not update a course when upload verification fails", async () => {
+        Course.findById.mockResolvedValue({ creator: "u1" });
+        verifyDirectUpload.mockRejectedValue(Object.assign(new Error("Invalid or unowned upload."), { uploadStatus: 400 }));
+        const res = makeRes();
+        await editCourse(makeReq({ id: "u1", params: { courseId: "c1" }, body: { thumbnailAssetId: "other" } }), res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(Course.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
+});
+
 describe("editLecture", () => {
     const makeLecture = (overrides = {}) => ({
         _id: "l1",
@@ -1200,6 +1238,31 @@ describe("editLecture", () => {
         attachmentPublicId: "",
         save: vi.fn().mockResolvedValue(true),
         ...overrides,
+    });
+
+    it("saves a verified direct PDF before removing the previous attachment", async () => {
+        const lecture = makeLecture({ attachmentUrl: "https://res.cloudinary.com/test/raw/authenticated/v1/old.pdf", attachmentPublicId: "old.pdf" });
+        Lecture.findById.mockResolvedValue(lecture);
+        Course.findById.mockResolvedValue({ lectures: ["l1"] });
+        verifyDirectUpload.mockResolvedValue({ public_id: "new.pdf", secure_url: "verified-private-pdf" });
+        const res = makeRes();
+        await editLecture(makeReq({ id: "u1", params: { courseId: "c1", lectureId: "l1" }, body: { attachmentAssetId: "new.pdf" } }), res);
+        expect(verifyDirectUpload).toHaveBeenCalledWith("new.pdf", "attachment", "u1");
+        expect(lecture.attachmentUrl).toBe("verified-private-pdf");
+        expect(lecture.save).toHaveBeenCalled();
+        expect(deleteMediaFromCloudinary).toHaveBeenCalledWith("old.pdf", "raw", "authenticated");
+        expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("keeps the original attachment when direct verification fails", async () => {
+        const lecture = makeLecture({ attachmentPublicId: "original.pdf" });
+        Lecture.findById.mockResolvedValue(lecture);
+        verifyDirectUpload.mockRejectedValue(Object.assign(new Error("Invalid or unowned upload."), { uploadStatus: 400 }));
+        const res = makeRes();
+        await editLecture(makeReq({ id: "u1", params: { courseId: "c1", lectureId: "l1" }, body: { attachmentAssetId: "other.pdf" } }), res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(lecture.save).not.toHaveBeenCalled();
+        expect(deleteMediaFromCloudinary).not.toHaveBeenCalled();
     });
 
     it("returns 404 when lecture is not found", async () => {

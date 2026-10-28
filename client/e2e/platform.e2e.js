@@ -73,6 +73,35 @@ test("catalog, search filters, and public instructor courses retain their pages"
   await expect(page.locator('a[href^="/course-detail/"]')).toHaveCount(12);
 });
 
+test("instructor uploads a 6 MB PDF directly and saves only its asset ID", async ({ page, context }) => {
+  const fixture = await fixtures();
+  await login(page, fixture.instructorEmail, fixture.password);
+  const publicId = `lms/lecture-attachments/${fixture.instructorId}/06360d51-8883-4d12-97df-18e2af5da979.pdf`;
+  await context.route(`${api}/media/upload-signature`, (route) => route.fulfill({ json: { data: { cloudName: "e2e", apiKey: "public-test-key", signature: "test-signature", resourceType: "raw", params: { public_id: publicId, type: "authenticated", overwrite: false, timestamp: 123 } } } }));
+  let storageBytes = 0;
+  await context.route("https://api.cloudinary.com/v1_1/e2e/raw/upload", async (route) => {
+    expect(route.request().headers().authorization).toBeUndefined();
+    storageBytes = route.request().postDataBuffer().length;
+    await route.fulfill({ json: { public_id: publicId } });
+  });
+  let savedPayload;
+  await context.route(`${api}/course/${fixture.courseId}/lecture/${fixture.lectureId}`, async (route) => {
+    savedPayload = route.request().postData();
+    await route.fulfill({ json: { message: "Lecture updated successfully." } });
+  });
+  await page.goto(`/instructor/course/${fixture.courseId}/lecture/${fixture.lectureId}`);
+  // The fixture's playback URL is local; use a valid external video link for this edit.
+  await page.getByPlaceholder(/youtube.com/).fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await page.locator('input[type="file"][accept="application/pdf"]').setInputFiles({ name: "large-notes.pdf", mimeType: "application/pdf", buffer: Buffer.concat([Buffer.from("%PDF-1.7\n"), Buffer.alloc(6 * 1024 * 1024)]) });
+  await page.getByRole("button", { name: "Update Lecture", exact: true }).click();
+  await expect(page.getByText("Lecture updated successfully.", { exact: true })).toBeVisible();
+  expect(storageBytes).toBeGreaterThan(6 * 1024 * 1024);
+  expect(Buffer.byteLength(savedPayload)).toBeLessThan(8192);
+  expect(savedPayload).toContain('name="attachmentAssetId"');
+  expect(savedPayload).toContain(publicId);
+  expect(savedPayload).not.toContain('filename="large-notes.pdf"');
+});
+
 test("student registers, verifies, requests enrollment, receives instructor approval, and saves real playback progress", async ({ page, browser, context }) => {
   const fixture = await fixtures();
   const email = `e2e-student-${Date.now()}@example.test`;

@@ -1,5 +1,13 @@
 # سجل التحقق — تدرّج
 
+## Vercel file uploads — 28 October 2026
+
+- Moved avatar, thumbnail, quiz-image, and lecture-PDF file bodies to signed browser-to-Cloudinary uploads. API save requests contain an asset ID; client-supplied URLs, sizes, and MIME types do not determine the stored file.
+- Upload IDs are unique, scoped to the account and purpose, and signed with overwrite disabled. Student accounts can request avatar uploads; teaching assets require instructor/admin access. Signature issuance and quiz-image verification are rate limited.
+- Before persisting direct assets, the API checks their provider metadata, ownership, delivery type, supported image format, and 10 MiB size limit. Authenticated raw PDF files also require a `%PDF-` header, read through a server-generated, short-lived URL with a bounded stream. Existing course-manager and enrollment protections remain in place.
+- Added a Chromium upload journey proving a 6 MiB PDF goes to the storage provider while the lecture-save body stays below 8 KiB. External storage is mocked in browser CI; an independent real Cloudinary check uploaded and verified a protected 6 MiB temporary PDF, then deleted that exact test asset. No platform accounts, courses, or orders were changed by that provider check.
+- Local validation: **320 backend tests**, **126 frontend tests**, the four existing Chromium journeys, and the additional direct-upload journey passed. Frontend lint, build, and startup budget passed. The video-engine bundle-size warning remains.
+
 ## Hosted Vercel verification — 28 October 2026
 
 - Created independent `tadaruj` and `tadaruj-api` Vercel projects using `client` and `server` roots and Node 22. Production deployments completed and the frontend was promoted to its assigned domain.

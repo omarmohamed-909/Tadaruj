@@ -17,7 +17,9 @@ vercel deploy --prod --yes --project tadaruj-api --scope omarmohamed-909s-projec
 vercel deploy --prod --yes --project tadaruj --scope omarmohamed-909s-projects
 ```
 
-The API's legacy proxied file uploads remain subject to Vercel's request-size limit; use the existing direct Cloudinary video upload path for large videos. Hosting a demo does not verify off-site backups, general email delivery, or payment receipt.
+Avatars, course thumbnails, quiz images, and lecture PDFs upload directly from the browser to Cloudinary, using server-signed, unique asset IDs. Images and PDFs retain their 10 MiB limit without crossing [Vercel's 4.5 MB function payload limit](https://vercel.com/docs/functions/limitations). The API independently checks asset ownership, provider metadata, size, and format before saving; PDFs are authenticated assets and their file header is checked. Videos continue to use their existing direct upload path.
+
+Legacy multipart routes remain available, with a 4 MiB file cap on Vercel (10 MiB images/PDFs and 25 MiB videos on other hosts). New browser flows do not send these file bodies through the API. Verification uses Cloudinary's authenticated resource API, so its account quota also applies. Hosting a demo does not verify off-site backups, general email delivery, or payment receipt.
 
 ## Choose the two deployment roots
 

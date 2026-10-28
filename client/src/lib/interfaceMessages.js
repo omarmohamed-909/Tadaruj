@@ -2,6 +2,15 @@ import { interpolate } from "./localize";
 
 // Interface copy only. Never pass course content or API request values through this map.
 export const interfaceMessages = {
+  "File must be 10 MB or smaller.": "حجم الملف لازم يكون 10 ميجابايت أو أقل.",
+  "Choose a JPG, PNG, WebP, GIF or AVIF image.": "اختار صورة بصيغة JPG أو PNG أو WebP أو GIF أو AVIF.",
+  "Upload failed. Please try again.": "تعذّر رفع الملف. جرّب مرة تانية.",
+  "Could not initialize upload. Please try again.": "تعذّر تجهيز رفع الملف. جرّب مرة تانية.",
+  "Could not verify uploaded file. Please try again.": "تعذّر التأكد من الملف المرفوع. جرّب مرة تانية.",
+  "Invalid or unowned upload.": "الملف غير صحيح أو مش تابع لحسابك.",
+  "Uploaded file was not found.": "الملف المرفوع مش موجود. ارفعه مرة تانية.",
+  "Too many uploads. Try again later.": "وصلت لحدّ الرفع المؤقت. جرّب بعد شوية.",
+  "Upload not allowed.": "حسابك مش مسموح له يرفع الملف ده.",
   "administration": "إدارة المنصة",
   "Admin invitation": "دعوة إدارة المنصة",
   "Sign in with the invited email, then return to this link.": "سجّل الدخول بالبريد المدعو، وبعدها ارجع للرابط ده.",

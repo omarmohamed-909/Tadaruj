@@ -1,4 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
+vi.mock("../utils/directUploads.js", () => ({ verifyDirectUpload: vi.fn() }));
+import { verifyDirectUpload } from "../utils/directUploads.js";
 
 vi.mock("../models/user.model.js", () => ({
     User: {
@@ -489,6 +491,24 @@ describe("resetPassword", () => {
 // ─── updateProfile ─────────────────────────────────────────────────────────
 
 describe("updateProfile", () => {
+    it("saves an independently verified direct avatar", async () => {
+        User.findById.mockResolvedValue({ _id: "u1", name: "Amal", role: "student", photoUrl: "" });
+        User.findByIdAndUpdate.mockReturnValue({ select: vi.fn().mockResolvedValue({ _id: "u1" }) });
+        verifyDirectUpload.mockResolvedValue({ public_id: "owned", secure_url: "verified-avatar-url" });
+        const res = makeRes();
+        await updateProfile(makeReq({ id: "u1", body: { photoAssetId: "owned" } }), res);
+        expect(verifyDirectUpload).toHaveBeenCalledWith("owned", "profile", "u1");
+        expect(User.findByIdAndUpdate).toHaveBeenCalledWith("u1", expect.objectContaining({ photoUrl: "verified-avatar-url" }), { new: true });
+        expect(uploadMedia).not.toHaveBeenCalled();
+    });
+    it("does not change a profile when its avatar belongs to another user", async () => {
+        User.findById.mockResolvedValue({ _id: "u1", name: "Amal", role: "student", photoUrl: "" });
+        verifyDirectUpload.mockRejectedValue(Object.assign(new Error("Invalid or unowned upload."), { uploadStatus: 400 }));
+        const res = makeRes();
+        await updateProfile(makeReq({ id: "u1", body: { photoAssetId: "other-user-asset" } }), res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(User.findByIdAndUpdate).not.toHaveBeenCalled();
+    });
     it("normalizes an instructor's international WhatsApp number", async () => {
         User.findById.mockResolvedValue({ _id: "u1", name: "Amal", role: "instructor", photoUrl: "" });
         User.findByIdAndUpdate.mockReturnValue({ select: vi.fn().mockResolvedValue({ _id: "u1" }) });

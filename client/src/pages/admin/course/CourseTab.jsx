@@ -42,6 +42,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useWorkspacePath } from "@/lib/useWorkspacePath";
 import { getCourseGradeLevel, getCourseSubject, getGradeLabel, gradeOptions, subjectSuggestions } from "@/lib/courseTaxonomy";
 import { useLanguage } from "@/components/languageContext";
+import { directUpload, IMAGE_ACCEPT, uploadErrorMessage, validateUpload } from "@/lib/directUpload";
 import { toast } from "sonner";
 
 const CourseTab = () => {
@@ -91,6 +92,7 @@ const CourseTab = () => {
   }, [courseByIdData]);
 
   const [previewThumbnail, setPreviewThumbnail] = useState("");
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
   const navigate = useNavigate();
   const workspacePath = useWorkspacePath();
 
@@ -117,6 +119,8 @@ const CourseTab = () => {
   const selectThumbnail = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      try { validateUpload(file, "thumbnail"); }
+      catch (error) { toast.error(feedback(uploadErrorMessage(error), ui("Upload failed. Please try again."))); e.target.value = ""; return; }
       setInput({ ...input, courseThumbnail: file });
       const fileReader = new FileReader();
       fileReader.onloadend = () => setPreviewThumbnail(fileReader.result);
@@ -137,11 +141,15 @@ const CourseTab = () => {
     formData.append("gradeLevel", input.gradeLevel);
     formData.append("courseLevel", input.courseLevel);
     formData.append("coursePrice", isFreeCourse ? 0 : input.coursePrice || 0);
-    if (input.courseThumbnail) {
-      formData.append("courseThumbnail", input.courseThumbnail);
-    }
-
-    await editCourse({ formData, courseId });
+    setIsUploadingThumbnail(true);
+    try {
+      if (input.courseThumbnail) {
+        const asset = await directUpload(input.courseThumbnail, "thumbnail");
+        formData.append("thumbnailAssetId", asset.public_id);
+      }
+      await editCourse({ formData, courseId });
+    } catch (error) { toast.error(feedback(uploadErrorMessage(error), ui("Upload failed. Please try again."))); }
+    finally { setIsUploadingThumbnail(false); }
   };
 
   const publishStatusHandler = async (action) => {
@@ -313,7 +321,7 @@ const CourseTab = () => {
               <Input
                 type="file"
                 onChange={selectThumbnail}
-                accept="image/*"
+                accept={IMAGE_ACCEPT}
                 className="h-12 rounded-2xl border-border bg-muted dark:border-border dark:bg-secondary"
               />
               <div className="mt-4 rounded-2xl border border-border bg-muted p-4 dark:border-border dark:bg-secondary/60">
@@ -337,8 +345,8 @@ const CourseTab = () => {
           {/* Desktop: Save + Cancel on the right */}
           <div className="hidden sm:flex sm:w-auto sm:gap-3">
             <Button onClick={() => navigate(workspacePath("/course"))} variant="outline" className="h-11 rounded-2xl px-5 text-sm font-semibold">{" "}{ui("Cancel")}{" "}</Button>
-            <Button disabled={isLoading} onClick={updateCourseHandler} className="h-11 rounded-2xl px-6 text-sm font-semibold">
-              {isLoading ? (
+            <Button disabled={isLoading || isUploadingThumbnail} onClick={updateCourseHandler} className="h-11 rounded-2xl px-6 text-sm font-semibold">
+              {isLoading || isUploadingThumbnail ? (
                 <><BrandedLoader variant="tiny" className="mr-2" />{ui("Please wait")}</>
               ) : ui("Save")}
             </Button>
@@ -364,8 +372,8 @@ const CourseTab = () => {
               >{" "}{ui("Delete Course")}{" "}</Button>
             </div>
             {/* Save full width */}
-            <Button disabled={isLoading} onClick={updateCourseHandler} className="h-11 w-full rounded-2xl text-sm font-semibold">
-              {isLoading ? (
+            <Button disabled={isLoading || isUploadingThumbnail} onClick={updateCourseHandler} className="h-11 w-full rounded-2xl text-sm font-semibold">
+              {isLoading || isUploadingThumbnail ? (
                 <><BrandedLoader variant="tiny" className="mr-2" />{ui("Please wait")}</>
               ) : ui("Save Changes")}
             </Button>

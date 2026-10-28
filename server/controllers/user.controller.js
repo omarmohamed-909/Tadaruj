@@ -2,7 +2,8 @@ import {User} from "../models/user.model.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken";
 import { generateToken } from "../utils/generateToken.js";
-import { deleteMediaFromCloudinary, uploadMedia } from "../utils/cloudinary.js";
+import { verifyDirectUpload } from "../utils/directUploads.js";
+import { deleteMediaFromCloudinary, extractPublicIdFromUrl, uploadMedia } from "../utils/cloudinary.js";
 import { Course } from "../models/course.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { sendEmail } from "../utils/sendEmail.js";
@@ -269,6 +270,11 @@ export const updateProfile = async(req,res)=>{
         let photoUrl = user.photoUrl;
         let photoUploadFailed = false;
 
+        if (req.body.photoAssetId !== undefined) {
+            const asset = await verifyDirectUpload(req.body.photoAssetId, "profile", userId);
+            photoUrl = asset.secure_url;
+        }
+
         if(profilePhoto){
             try {
                 const cloudResponse = await uploadMedia(profilePhoto.buffer || profilePhoto.path);
@@ -337,6 +343,11 @@ export const updateProfile = async(req,res)=>{
 
         const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {new:true}).select("-password");
 
+        if (req.body.photoAssetId !== undefined && user.photoUrl && photoUrl !== user.photoUrl) {
+            const oldId = extractPublicIdFromUrl(user.photoUrl);
+            if (oldId) await deleteMediaFromCloudinary(oldId);
+        }
+
         return res.status(200).json({
             success:true,
             user:updatedUser,
@@ -348,9 +359,9 @@ export const updateProfile = async(req,res)=>{
 
 
     } catch (error) {
-         return res.status(500).json({
+         return res.status(error.uploadStatus || 500).json({
             success:false,
-            message:"Failded to update profile"
+            message: error.uploadStatus ? error.message : "Failded to update profile"
         })
     }
 }

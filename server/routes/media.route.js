@@ -3,8 +3,34 @@ import authorizeRoles from "../middlewares/authorizeRoles.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
 import upload, { uploadVideo } from "../utils/multer.js";
 import { createCloudinaryUploadSignature, uploadMedia } from "../utils/cloudinary.js";
+import { canUploadPurpose, createDirectUpload, verifyDirectUpload } from "../utils/directUploads.js";
+import { rateLimit } from "express-rate-limit";
 
 const router = express.Router();
+const uploadLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, limit: 60, keyGenerator: (req) => req.id,
+    standardHeaders: "draft-8", legacyHeaders: false,
+    message: { success: false, message: "Too many uploads. Try again later." },
+});
+
+router.post("/upload-signature", isAuthenticated, uploadLimiter, (req, res) => {
+    const { purpose } = req.body;
+    if (!canUploadPurpose(purpose, req.user?.role)) return res.status(403).json({ message: "Upload not allowed." });
+    try {
+        return res.set("Cache-Control", "no-store").json({ data: createDirectUpload(purpose, req.id) });
+    } catch {
+        return res.status(503).json({ message: "Could not initialize upload. Please try again." });
+    }
+});
+
+// Quiz images need a canonical URL before the question is saved.
+router.post("/verify-quiz-image", isAuthenticated, authorizeRoles("instructor", "admin"), uploadLimiter, async (req, res) => {
+    try {
+        return res.json({ data: await verifyDirectUpload(req.body.publicId, "quiz", req.id) });
+    } catch (error) {
+        return res.status(error.uploadStatus || 500).json({ message: error.uploadStatus ? error.message : "Could not verify uploaded file." });
+    }
+});
 
 router.route("/upload-video-signature").post(isAuthenticated, authorizeRoles("instructor", "admin"), async (req, res) => {
     try {

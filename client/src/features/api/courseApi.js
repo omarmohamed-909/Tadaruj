@@ -201,14 +201,14 @@ export const courseApi = createApi({
         courseId,
         lectureId,
         description,
-        pdfFile,
+        attachmentAssetId,
       }) => {
         const formData = new FormData();
         if (lectureTitle !== undefined) formData.append("lectureTitle", lectureTitle);
         if (videoInfo !== undefined) formData.append("videoInfo", JSON.stringify(videoInfo));
         if (isPreviewFree !== undefined) formData.append("isPreviewFree", String(isPreviewFree));
         if (description !== undefined) formData.append("description", description);
-        if (pdfFile instanceof File) formData.append("attachment", pdfFile);
+        if (attachmentAssetId !== undefined) formData.append("attachmentAssetId", attachmentAssetId);
         return {
           url: `/${courseId}/lecture/${lectureId}`,
           method: "POST",

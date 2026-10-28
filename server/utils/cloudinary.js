@@ -202,6 +202,34 @@ export const createCloudinaryUploadSignature = (paramsToSign = {}) => {
     };
 };
 
+export const getCloudinaryResource = (publicId, resourceType, type) => {
+    ensureCloudinaryConfig();
+    return cloudinary.api.resource(publicId, { resource_type: resourceType, type, timeout: 10000 });
+};
+
+export const readCloudinaryFileHeader = async (publicId) => {
+    ensureCloudinaryConfig();
+    // Build the URL ourselves; client input must never choose a fetch destination.
+    const url = cloudinary.utils.private_download_url(publicId, "pdf", {
+        resource_type: "raw", type: "authenticated", expires_at: Math.floor(Date.now() / 1000) + 60,
+    });
+    const response = await fetch(url, { headers: { Range: "bytes=0-4" }, signal: AbortSignal.timeout(10000), redirect: "error" });
+    if (!response.ok || !response.body) throw new Error("Could not read uploaded PDF.");
+    const reader = response.body.getReader();
+    const prefix = Buffer.alloc(5);
+    let offset = 0;
+    try {
+        while (offset < prefix.length) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = value.subarray(0, prefix.length - offset);
+            prefix.set(chunk, offset);
+            offset += chunk.length;
+        }
+    } finally { await reader.cancel(); }
+    return prefix.subarray(0, offset);
+};
+
 export const deleteMediaFromCloudinary = async (publicId, resourceType = "image", deliveryType = "upload") => {
     try {
         await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, type: deliveryType });
