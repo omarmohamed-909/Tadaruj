@@ -27,9 +27,9 @@ const MainLayout = () => {
         <AcademyTheme enabled={isNotFound || usesAcademyTheme(pathname)} />
         <ScrollToTopOnRouteChange />
         <Navbar/>
-        <div className='flex-1 mt-16'>
+        <div className='mt-16 min-h-[calc(100svh-4rem)] flex-1'>
             <DeploymentNotice />
-            <React.Suspense fallback={<div className="min-h-[calc(100svh-4rem)]"><BrandedLoader variant="page" /></div>}><Outlet /></React.Suspense>
+            <React.Suspense fallback={<BrandedLoader variant="page" />}><Outlet /></React.Suspense>
         </div>
       {!hideFooter && <Footer />}
     </div>
