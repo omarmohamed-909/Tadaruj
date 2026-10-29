@@ -75,6 +75,13 @@ Fixtures and generated media live in ignored `.test-runtime/`. They contain synt
 
 ## CI and limits
 
+Slow-connection browser journeys also hold the initial profile check open while
+browsing public mobile pages, verify deferred menu focus and RTL, retry a
+temporary profile failure without trusting a cached admin identity, and test a
+successful login while an older anonymous profile response is delayed. The
+video journey starts playback explicitly and verifies `preload="none"`.
+See [PERFORMANCE.md](PERFORMANCE.md) for network settings and build budgets.
+
 The frontend, real-database backend, and browser jobs run independently on pushes and pull requests, without service secrets. The backend job also builds and starts the non-root API container, checks its health/anonymous access, and performs the synthetic backup/restore drill documented in [RECOVERY.md](RECOVERY.md). Operational tests cover database reconnection, bounded readiness, safe HTTP failures, production startup, and shutdown. A successful run verifies these contracts and journeys, not production readiness or external service delivery. On-demand video engines still produce a build size warning.
 
 References: [Playwright CI](https://playwright.dev/docs/ci), [Playwright test isolation](https://playwright.dev/docs/browser-contexts), [MongoDB test replica sets](https://www.mongodb.com/docs/manual/tutorial/deploy-replica-set-for-testing/).

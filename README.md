@@ -264,6 +264,7 @@ The testing guide is in English; service setup guides include Arabic instruction
 | [Google sign-in](GOOGLE_AUTH_SETUP.md) | Google client configuration and account linking behavior |
 | [Test report](TEST_REPORT.md) | Recorded results, test coverage areas, and verification limits |
 | [Testing guide](TESTING.md) | Isolated MongoDB, Playwright journeys, CI, and pagination contracts |
+| [Performance verification](PERFORMANCE.md) | Weak-network measurements, startup budgets, deferred downloads, and mobile regression checks |
 | [Deployment guide](DEPLOYMENT.md) | Production configuration, probes, Docker, monitoring, and rollback |
 | [Recovery guide](RECOVERY.md) | Consistent backups, isolated restores, media dependencies, and CI recovery drill |
 
