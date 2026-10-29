@@ -150,7 +150,8 @@ test("student registers, verifies, requests enrollment, receives instructor appr
   await expect(page.getByText("0 of 1 lectures completed", { exact: true })).toBeVisible();
   const video = page.locator("video");
   await expect(video).toBeVisible();
-  await expect.poll(() => video.evaluate((element) => element.readyState)).toBeGreaterThanOrEqual(3);
+  // The player deliberately waits for user intent before downloading video.
+  await expect(video).toHaveAttribute("preload", "none");
   await video.evaluate(element => element.play());
   await expect.poll(() => video.evaluate((element) => element.ended)).toBe(true);
   await expect(page.getByText("Completed", { exact: true }).first()).toBeVisible();

@@ -23,6 +23,8 @@ const SearchResult = ({ course }) => {
         <img
           src={secureMediaUrl(course.courseThumbnail) || "/brand-mark.webp"}
           alt={course.courseTitle}
+          loading="lazy"
+          decoding="async"
           className={`h-40 w-full rounded-2xl bg-muted md:h-32 md:w-56 ${course.courseThumbnail ? "object-cover" : "object-contain p-6"}`}
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2">

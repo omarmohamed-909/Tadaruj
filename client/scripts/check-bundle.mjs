@@ -23,7 +23,7 @@ const brandFiles = ["tadaruj-logo.webp", "tadaruj-logo-dark.webp", "tadaruj-logo
 const brandAssetsBytes = brandFiles.reduce((total, file) => total + fs.statSync(path.join(dist, file)).size, 0);
 console.log(JSON.stringify({ initialJavaScriptBytes: bytes, initialJavaScriptGzipBytes: gzip, brandAssetsBytes, initialChunks: files }, null, 2));
 // Budget applies to startup code, not optional video engines loaded during playback.
-if (bytes > 650000 || gzip > 200000 || brandAssetsBytes > 350 * 1024) {
+if (bytes > 500000 || gzip > 165000 || brandAssetsBytes > 350 * 1024) {
   console.error("Initial JavaScript exceeds the startup budget.");
   process.exitCode = 1;
 }

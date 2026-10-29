@@ -26,7 +26,7 @@ import { CONTACT_NUMBER } from "@/lib/constants";
 import { useSelector } from "react-redux";
 import { BadgeCheck, CheckCircle, CheckCircle2, CirclePlay, CornerDownRight, Download, FileText, ListChecks, MessageSquare, Phone, Pin, PinOff, PlayCircle, Send, Trash2 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
-import ReactPlayer from "react-player";
+import VideoPlayer from "@/components/VideoPlayer";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -713,10 +713,10 @@ const CourseProgress = () => {
                 className="overflow-hidden rounded-2xl bg-black shadow-sm"
                 onContextMenu={(e) => e.preventDefault()}
               >
-                <ReactPlayer
+                <VideoPlayer
                   src={secureMediaUrl(activeLecture?.videoUrl)}
                   controls
-                  playsinline
+                  playsInline
                   config={YOUTUBE_PLAYER_CONFIG}
                   width="100%"
                   height="100%"

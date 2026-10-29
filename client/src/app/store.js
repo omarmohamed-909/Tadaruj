@@ -14,8 +14,3 @@ export const appStore  =configureStore({
     middleware:(defaultMiddleware)=> defaultMiddleware().prepend(sessionListener.middleware).concat(authApi.middleware,courseApi.middleware, purchaseApi.middleware, courseProgressApi.middleware),
 });
 setupListeners(appStore.dispatch);
-
-const initializeApp = async () =>{
-  await appStore.dispatch(authApi.endpoints.loadUser.initiate({},{forceRefetch:true}))
-}
-initializeApp();

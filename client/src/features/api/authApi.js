@@ -140,6 +140,7 @@ export const authApi = createApi({
             query: () => ({
                 url: "profile",
                 method: "GET",
+                timeout: 15000,
             }),
             providesTags: ["CurrentUser"],
             async onQueryStarted(_, { queryFulfilled, dispatch }) {

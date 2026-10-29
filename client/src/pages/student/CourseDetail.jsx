@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import ReactPlayer from "react-player";
+import VideoPlayer from "@/components/VideoPlayer";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
 import { useSelector } from "react-redux";
@@ -285,7 +285,7 @@ const CourseDetail = () => {
             <CardContent className="space-y-5 p-5 md:p-6">
               <div className="overflow-hidden rounded-3xl border border-border bg-black shadow-lg">
                 {hasPreviewVideo ? (
-                  <ReactPlayer
+                  <VideoPlayer
                     width="100%"
                     height={"100%"}
                     src={secureMediaUrl(selectedLecture.videoUrl)}

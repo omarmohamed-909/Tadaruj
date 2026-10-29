@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "./languageContext";
+import DeferredImage from "./DeferredImage";
 
 const InstructorCard = ({ instructor, featured = false }) => {
   const { t } = useLanguage();
@@ -11,7 +12,7 @@ const InstructorCard = ({ instructor, featured = false }) => {
     >
       <div className={`relative flex shrink-0 items-center justify-center overflow-hidden border-t-[3px] border-[#e7b96d] bg-[#12383a] ${featured ? "min-h-60 md:min-h-72" : "h-40"}`}>
         <span className="absolute start-6 top-5 text-xs font-semibold uppercase tracking-[0.18em] text-[#d9e7e0]">{t("instructor")}</span>
-        <img
+        <DeferredImage
           src={instructor.photoUrl || "/default-avatar.webp"}
           alt=""
           loading="lazy"

@@ -5,6 +5,7 @@ import DeploymentNotice from '@/components/DeploymentNotice'
 import { usesAcademyTheme } from '@/lib/academyTheme'
 import React from 'react'
 import { Outlet, useLocation, useMatches } from 'react-router-dom'
+import BrandedLoader from '@/components/BrandedLoader'
 
 const ScrollToTopOnRouteChange = () => {
   const { pathname, search } = useLocation();
@@ -28,7 +29,7 @@ const MainLayout = () => {
         <Navbar/>
         <div className='flex-1 mt-16'>
             <DeploymentNotice />
-            <Outlet />
+            <React.Suspense fallback={<div className="min-h-[calc(100svh-4rem)]"><BrandedLoader variant="page" /></div>}><Outlet /></React.Suspense>
         </div>
       {!hideFooter && <Footer />}
     </div>

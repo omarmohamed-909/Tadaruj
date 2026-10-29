@@ -135,9 +135,11 @@ export default function GoogleSignIn({ onSuccess, onVerification, disabled = fal
           </div>
         </form>
       ) : (
-        <div className="relative min-h-10" aria-busy={busy}>
-          <div ref={container} className={`mx-auto flex w-full max-w-[360px] justify-center overflow-hidden ${busy || disabled ? "pointer-events-none opacity-50" : ""}`} inert={busy || disabled ? true : undefined} />
-          {!sdk && !error && !configError && <BrandedLoader variant="inline" className="mx-auto flex h-10" />}
+        <div aria-busy={busy}>
+          <div className="relative h-11">
+            <div ref={container} className={`mx-auto flex h-full w-full max-w-[360px] items-center justify-center overflow-hidden ${busy || disabled ? "pointer-events-none opacity-50" : ""}`} inert={busy || disabled ? true : undefined} />
+            {!sdk && !error && !configError && <BrandedLoader variant="inline" className="pointer-events-none absolute inset-0" />}
+          </div>
           {busy && <p role="status" className="mt-2 text-center text-sm">{t("pleaseWait")}</p>}
         </div>
       )}

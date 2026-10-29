@@ -4,6 +4,9 @@ import { interpolate, translateFeedback } from "@/lib/localize";
 
 // Keep the navigation copy small: workspace translations load with their pages.
 const messages = {
+  "Could not check your connection.": "تعذّر التأكد من الاتصال.",
+  "Your connection may be slow or temporarily unavailable. Try again to continue.": "الاتصال ممكن يكون بطيء أو غير متاح مؤقتًا. جرّب تاني علشان تكمل.",
+  "Try again": "حاول تاني",
   "Change language": "تغيير اللغة",
   "profile avatar": "الصورة الشخصية",
   "Edit Profile": "تعديل الملف الشخصي",
