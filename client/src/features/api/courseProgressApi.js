@@ -13,7 +13,7 @@ const getStoredToken = () => {
 };
 export const courseProgressApi = createApi({
   reducerPath: "courseProgressApi",
-  tagTypes: ["LectureComments", "CommentNotifications"],
+  tagTypes: ["LectureComments", "CommentNotifications", "Learning"],
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_PURCHASE_API,
     credentials: "include",
@@ -28,6 +28,23 @@ export const courseProgressApi = createApi({
     },
   }),
   endpoints: (builder) => ({
+    getMyLearning: builder.query({
+      query: ({ page = 1, status = "all" } = {}) => ({ url: "/my-learning", params: { page, status } }),
+      providesTags: ["Learning"],
+    }),
+    saveLearningPosition: builder.mutation({
+      query: ({ courseId, lectureId, position, duration }) => ({ url: `/${courseId}/lecture/${lectureId}/position`, method: "PUT", body: { position, duration }, timeout: 10000 }),
+      invalidatesTags: ["Learning"],
+      async onQueryStarted({ courseId, lectureId, position, duration }, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(courseProgressApi.util.updateQueryData("getCourseProgress", courseId, draft => {
+            if (!draft?.data) return;
+            draft.data.positions = [{ lectureId, position, duration, updatedAt: new Date().toISOString() }, ...(draft.data.positions || []).filter(item => item.lectureId !== lectureId)];
+          }));
+        } catch { /* The player shows the retry state; do not cache failed saves. */ }
+      },
+    }),
     getCourseProgress: builder.query({
       query: (courseId) => ({
         url: `/${courseId}`,
@@ -35,6 +52,7 @@ export const courseProgressApi = createApi({
       }),
     }),
     updateLectureProgress: builder.mutation({
+      invalidatesTags: ["Learning"],
       query: ({ courseId, lectureId }) => ({
         url: `/${courseId}/lecture/${lectureId}/view`,
         method: "POST",
@@ -143,18 +161,21 @@ export const courseProgressApi = createApi({
       },
     }),
     completeCourse: builder.mutation({
+        invalidatesTags: ["Learning"],
         query: (courseId) => ({
             url: `/${courseId}/complete`,
             method: "POST",
         }),
     }),
     incompleteCourse: builder.mutation({
+        invalidatesTags: ["Learning"],
         query: (courseId) => ({
             url: `/${courseId}/incomplete`,
             method: "POST",
         }),
     }),
     submitQuizResult: builder.mutation({
+      invalidatesTags: ["Learning"],
       query: ({ courseId, lectureId, answers }) => ({
         url: `/${courseId}/lecture/${lectureId}/quiz-result`,
         method: "POST",
@@ -176,6 +197,8 @@ export const courseProgressApi = createApi({
   }),
 });
 export const {
+useGetMyLearningQuery,
+useSaveLearningPositionMutation,
 useGetCourseProgressQuery,
 useUpdateLectureProgressMutation,
 useGetCommentNotificationsQuery,

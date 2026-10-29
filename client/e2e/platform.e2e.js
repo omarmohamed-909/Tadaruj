@@ -159,9 +159,44 @@ test("student registers, verifies, requests enrollment, receives instructor appr
   const saved = await (await context.request.get(`${api}/progress/${fixture.courseId}`)).json();
   expect(saved.data.completed).toBe(true);
   expect(saved.data.progress).toEqual(expect.arrayContaining([expect.objectContaining({ lectureId: fixture.lectureId, viewed: true })]));
+  await expect.poll(async () => (await (await context.request.get(`${api}/progress/${fixture.courseId}`)).json()).data.positions.length).toBe(1);
   await page.reload();
   await expect(page.getByText("Completed", { exact: true }).first()).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("student-completed.png"), fullPage: false });
+  await page.goto("/my-learning");
+  await expect(page.getByRole("heading", { name: "Your learning space" })).toBeVisible();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("value", "100");
+  await expect(page.getByRole("link", { name: "Review course", exact: true })).toHaveAttribute("href", new RegExp(fixture.lectureId));
+  await page.getByRole("button", { name: "Completed 1", exact: true }).click();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("value", "100");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: test.info().outputPath("my-learning-mobile.png"), fullPage: true });
+  // A new browser context has no quiz flags or playback position in local storage.
+  expect((await context.request.post(`${api}/progress/${fixture.courseId}/incomplete`)).ok()).toBe(true);
+  expect((await context.request.put(`${api}/progress/${fixture.courseId}/lecture/${fixture.lectureId}/position`, { data: { position: 0.6, duration: 2.1 } })).ok()).toBe(true);
+  const secondDevice = await browser.newContext();
+  try {
+    await isolate(secondDevice);
+    const other = await secondDevice.newPage();
+    await login(other, email, fixture.password);
+    await other.goto("/my-learning");
+    await expect(other.getByRole("region", { name: "Continue learning", exact: true })).toBeVisible();
+    await other.getByRole("region", { name: "Continue learning", exact: true }).getByRole("link", { name: "Continue learning", exact: true }).click();
+    const resumedVideo = other.locator("video");
+    await expect(resumedVideo).toBeVisible();
+    await resumedVideo.evaluate(async element => { await element.play(); element.pause(); });
+    await expect.poll(() => resumedVideo.evaluate(element => element.currentTime)).toBeGreaterThanOrEqual(0.55);
+    expect(await resumedVideo.evaluate(element => element.currentTime)).toBeLessThan(1.5);
+    await other.goto("/my-learning");
+    await other.getByRole("button", { name: "Switch to dark mode", exact: true }).click();
+    await expect(other.locator("html")).toHaveClass(/dark/);
+    await other.getByRole("button", { name: "Change language", exact: true }).click();
+    await other.setViewportSize({ width: 390, height: 844 });
+    await expect(other.getByRole("heading", { name: "مساحتك للتعلّم", exact: true })).toBeVisible();
+    expect(await other.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await other.screenshot({ path: test.info().outputPath("my-learning-ar-mobile.png"), fullPage: true });
+  } finally { await secondDevice.close(); }
 });
 
 test("admin searches all users, retains page filters, and loads course access on demand", async ({ page }) => {

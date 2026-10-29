@@ -17,9 +17,13 @@ import {
 	submitQuizResult,
 	togglePinLectureComment,
 	updateCourseProgress,
+  getMyLearning,
+  saveLearningPosition,
 } from '../controllers/courseProgress.controller.js';
 
 const router = express.Router();
+router.get('/my-learning', isAuthenticated, getMyLearning);
+router.put('/:courseId/lecture/:lectureId/position', isAuthenticated, saveLearningPosition);
 
 router.route('/comment-notifications').get(isAuthenticated, getCommentNotifications);
 router.route('/comment-notifications/read-all').patch(isAuthenticated, markAllCommentNotificationsAsRead);

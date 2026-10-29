@@ -96,7 +96,7 @@ test("a delayed anonymous session response cannot undo a successful login", asyn
     await expect(page).toHaveURL("http://127.0.0.1:5193/");
     release();
     await page.goto("/my-learning");
-    await expect(page.getByRole("heading", { name: /^my learning$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your learning space", exact: true })).toBeVisible();
     await expect(page).toHaveURL(/\/my-learning$/);
     expect(await page.evaluate(() => Boolean(localStorage.getItem("lms_auth_token")))).toBe(true);
   } finally { release(); }

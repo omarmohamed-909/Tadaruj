@@ -77,6 +77,7 @@ vi.mock("../utils/cloudinary.js", () => ({
 
 import { Course } from "../models/course.model.js";
 import { CourseProgress } from "../models/courseProgress.js";
+vi.mock("../models/learningPosition.model.js", () => ({ LearningPosition: { deleteMany: vi.fn().mockResolvedValue({}) } }));
 import { Lecture } from "../models/lecture.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { LectureComment } from "../models/lectureComment.model.js";

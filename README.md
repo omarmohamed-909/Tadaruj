@@ -34,7 +34,7 @@ This repository contains both the frontend and backend, with separate developmen
 | Area | Capabilities |
 | --- | --- |
 | Discovery | Instructor cards, public profiles, and courses searchable by subject, stage, and price |
-| Learning | Video lessons, attachments, quizzes, comments, and saved student progress |
+| Learning | Personal learning dashboard, cross-device video resume, playback speed, lesson navigation, attachments, quizzes, comments, and server-derived progress |
 | Accounts | Email and password registration, Google sign-in, email verification, and password recovery |
 | Content management | Instructor tools for courses, lessons, quizzes, and enrollment requests |
 | Platform management | Administration for accounts, content, and orders, with admin invitations and an audit log |

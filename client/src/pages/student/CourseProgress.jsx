@@ -26,7 +26,7 @@ import { CONTACT_NUMBER } from "@/lib/constants";
 import { useSelector } from "react-redux";
 import { BadgeCheck, CheckCircle, CheckCircle2, CirclePlay, CornerDownRight, Download, FileText, ListChecks, MessageSquare, Phone, Pin, PinOff, PlayCircle, Send, Trash2 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
-import VideoPlayer from "@/components/VideoPlayer";
+import LearningPlayer from "@/components/LearningPlayer";
 import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -39,8 +39,8 @@ const YOUTUBE_PLAYER_CONFIG = {
   },
   file: {
     attributes: {
-      controlsList: "nodownload noplaybackrate noremoteplayback",
-      disablePictureInPicture: true,
+      controlsList: "nodownload",
+      disablePictureInPicture: false,
       playsInline: true,
       onContextMenu: (e) => e.preventDefault(),
     },
@@ -58,7 +58,7 @@ const CourseProgress = () => {
   const feedback = useFeedbackText();
   const ui = useUiText();
   const params = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const courseId = params.courseId;
   const { data, isLoading, isError, refetch } =
     useGetCourseProgressQuery(courseId);
@@ -85,16 +85,11 @@ const CourseProgress = () => {
   const [quizAnswers, setQuizAnswers] = useState({});
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [quizResultScore, setQuizResultScore] = useState(null);
-  const [quizCompletedByLecture, setQuizCompletedByLecture] = useState(() => {
-    try {
-      return JSON.parse(window.localStorage.getItem(`lecture-quiz-completed:${courseId}`) || "{}");
-    } catch {
-      return {};
-    }
-  });
+  const quizCompletedByLecture = data?.data?.quizCompleted || {};
   const { user } = useSelector((store) => store.auth);
   const lectures = data?.data?.courseDetails?.lectures ?? [];
-  const activeLectureId = curerntLecture?._id || lectures[0]?._id || "";
+  const resumedLecture = lectures.find(lecture => lecture._id === data?.data?.positions?.[0]?.lectureId);
+  const activeLectureId = curerntLecture?._id || resumedLecture?._id || lectures[0]?._id || "";
   const requestedLectureId = searchParams.get("lectureId");
   const { data: commentsData, isLoading: commentsLoading } = useGetLectureCommentsQuery(
     { courseId, lectureId: activeLectureId },
@@ -117,19 +112,8 @@ const CourseProgress = () => {
     }
   }, [requestedLectureId, data?.data?.courseDetails?.lectures]);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        `lecture-quiz-completed:${courseId}`,
-        JSON.stringify(quizCompletedByLecture)
-      );
-    } catch {
-      // Ignore storage failures.
-    }
-  }, [quizCompletedByLecture, courseId]);
-
   const activeLecture =
-    curerntLecture || data?.data?.courseDetails?.lectures?.[0];
+    curerntLecture || resumedLecture || data?.data?.courseDetails?.lectures?.[0];
   const sanitizedDescription = useMemo(
     () =>
       activeLecture?.description
@@ -183,20 +167,13 @@ const CourseProgress = () => {
     ? Math.round((completedLecturesCount / courseDetails.lectures.length) * 100)
     : 0;
 
-  // كل الفيديوهات اتشافت مرة واحدة على الأقل؟
-  const allVideosWatchedAtLeastOnce = courseDetails.lectures.every((lec) =>
-    progress.some((prog) => prog.lectureId === lec._id && prog.viewed)
-  );
-  // سبق وخلّص الكورس ده قبل كده؟
-  const wasCompletedBefore = progress.length > 0;
-
-  // يقدر يكمل لو: شاف كل الفيديوهات، أو سبق وخلّص الكورس
-  const canComplete = allVideosWatchedAtLeastOnce || wasCompletedBefore;
+  const canComplete = Boolean(data.data.completed);
   const activeLectureIndex = courseDetails.lectures.findIndex(
     (lecture) => lecture._id === activeLecture?._id
   );
   const lectureQuizQuestions = activeLecture?.quizQuestions ?? [];
   const totalQuizQuestions = lectureQuizQuestions.length;
+  const savedQuiz = data.data.quizResults?.find(result => result.lectureId === activeLecture?._id);
   const answeredQuizQuestionsCount = Object.keys(quizAnswers).length;
 
   const isLectureCompleted = (lectureId) => {
@@ -215,29 +192,7 @@ const CourseProgress = () => {
 
     try {
       await updateLectureProgress({ courseId, lectureId }).unwrap();
-      const updated = await refetch();
-
-      const updatedProgress = updated?.data?.data?.progress ?? [];
-      const updatedLectures =
-        updated?.data?.data?.courseDetails?.lectures ?? courseDetails.lectures;
-
-      const allCompleted = updatedLectures.every((lec) => {
-        const videoViewed = updatedProgress.some(
-          (prog) => prog.lectureId === lec._id && prog.viewed
-        );
-        const hasQuiz = (lec.quizQuestions?.length || 0) > 0;
-        const quizDone = hasQuiz ? Boolean(quizCompletedByLecture[lec._id]) : true;
-
-        return videoViewed && quizDone;
-      });
-
-      if (allCompleted && !completed) {
-        const response = await completeCourse(courseId).unwrap();
-        await refetch();
-        toast.success(feedback(response?.message || ui("Course marked as completed."), ui("Course marked as completed.")), {
-          id: `course-complete-${courseId}`,
-        });
-      }
+      await refetch();
     } catch (error) {
       toast.error(feedback(error?.data?.message || ui("Failed to update lecture progress."), ui("Failed to update lecture progress.")), {
         id: `course-progress-error-${courseId}`,
@@ -246,8 +201,16 @@ const CourseProgress = () => {
   };
 
   //handle select a specific lecture to watch
-  const handleSelectLecture = (lecture) => {
+  const selectLecture = (lecture) => {
     setCurrentLecture(lecture);
+    setSearchParams(current => {
+      const next = new URLSearchParams(current);
+      next.set("lectureId", lecture._id);
+      return next;
+    }, { replace: true });
+  };
+  const handleSelectLecture = (lecture) => {
+    selectLecture(lecture);
     setContentViewMode("video");
     setQuizAnswers({});
     setShowQuizResult(false);
@@ -255,12 +218,12 @@ const CourseProgress = () => {
   };
 
   const handleOpenLectureVideo = (lecture) => {
-    setCurrentLecture(lecture);
+    selectLecture(lecture);
     setContentViewMode("video");
   };
 
   const handleOpenLectureQuiz = (lecture) => {
-    setCurrentLecture(lecture);
+    selectLecture(lecture);
     setContentViewMode("quiz");
     setQuizAnswers({});
     setShowQuizResult(false);
@@ -583,10 +546,7 @@ const CourseProgress = () => {
       setQuizResultScore(response.score);
       setShowQuizResult(true);
 
-      setQuizCompletedByLecture((currentValue) => ({
-        ...currentValue,
-        [activeLecture._id]: true,
-      }));
+      await refetch();
 
       if (typeof response?.remainingAttempts === "number") {
         toast.success(
@@ -675,7 +635,7 @@ const CourseProgress = () => {
             <Button
               onClick={completed ? handleInCompleteCourse : handleCompleteCourse}
               variant={completed ? "outline" : "default"}
-              title={!completed && !canComplete ? ui("Watch all lectures at least once first") : ""}
+              title={!completed && !canComplete ? (language === "ar" ? "أنهِ الدروس وسلّم اختباراتها أولًا" : "Finish lessons and submit their quizzes first") : ""}
               className={`hidden h-11 w-full rounded-xl px-5 text-sm font-semibold shadow-sm transition sm:inline-flex sm:min-w-44 sm:w-auto ${
                 completed
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
@@ -698,7 +658,7 @@ const CourseProgress = () => {
               )}
             </Button>
             {!completed && !canComplete && (
-              <p className="mt-2 hidden text-center text-xs text-muted-foreground sm:block sm:text-left">{ui("Watch all lectures once to unlock")}</p>
+              <p className="mt-2 hidden text-center text-xs text-muted-foreground sm:block sm:text-left">{(language === "ar" ? "أكمِل الدروس وسلّم الاختبارات لإكمال الكورس" : "Finish lessons and submit quizzes to complete this course")}</p>
             )}
             </div>
           </div>
@@ -713,7 +673,12 @@ const CourseProgress = () => {
                 className="overflow-hidden rounded-2xl bg-black shadow-sm"
                 onContextMenu={(e) => e.preventDefault()}
               >
-                <VideoPlayer
+                <LearningPlayer
+                  key={`${user?._id}:${courseId}:${activeLecture?._id}`}
+                  accountId={user?._id}
+                  courseId={courseId}
+                  lectureId={activeLecture?._id}
+                  initialPosition={data.data.positions?.find(item => item.lectureId === activeLecture?._id)?.position || 0}
                   src={secureMediaUrl(activeLecture?.videoUrl)}
                   controls
                   playsInline
@@ -724,26 +689,7 @@ const CourseProgress = () => {
                   onEnded={() =>
                     handleLectureProgress(curerntLecture?._id || activeLecture?._id)
                   }
-                  onReady={(player) => {
-                    const internalPlayer =
-                      player && typeof player.getInternalPlayer === "function"
-                        ? player.getInternalPlayer()
-                        : null;
 
-                    if (!internalPlayer || typeof internalPlayer !== "object") {
-                      return;
-                    }
-
-                    if (typeof internalPlayer.setAttribute === "function") {
-                      internalPlayer.setAttribute(
-                        "controlsList",
-                        "nodownload noplaybackrate noremoteplayback"
-                      );
-                    }
-
-                    internalPlayer.disablePictureInPicture = true;
-                    internalPlayer.oncontextmenu = () => false;
-                  }}
                 />
               </div>            ) : (
               <div className="rounded-2xl border border-border bg-card p-4 shadow-sm md:p-5">
@@ -816,7 +762,7 @@ const CourseProgress = () => {
                         type="button"
                         onClick={submitQuiz}
                         className="rounded-2xl"
-                        disabled={isSubmittingQuizResult}
+                        disabled={isSubmittingQuizResult || savedQuiz?.attemptsCount >= 3}
                       >
                         {isSubmittingQuizResult ? "Submitting..." : ui("Check Answers")}
                       </Button>
@@ -826,6 +772,9 @@ const CourseProgress = () => {
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/30 dark:text-emerald-300">{" "}{ui("Your score:")}{" "}{quizResultScore} / {totalQuizQuestions}
                       </div>
                     )}
+                    {savedQuiz && <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+                      {language === "ar" ? `أفضل نتيجة: ${savedQuiz.bestPercentage}% · المحاولات المتبقية: ${Math.max(0, 3 - savedQuiz.attemptsCount)}` : `Best score: ${savedQuiz.bestPercentage}% · Remaining attempts: ${Math.max(0, 3 - savedQuiz.attemptsCount)}`}
+                    </p>}
                   </div>
                 )}
               </div>
@@ -847,6 +796,10 @@ const CourseProgress = () => {
                 )}
               </Badge>
             </div>
+            <nav aria-label={language === "ar" ? "التنقل بين الدروس" : "Lesson navigation"} className="mt-4 flex justify-between gap-3">
+              <Button variant="outline" disabled={activeLectureIndex <= 0} onClick={() => handleSelectLecture(courseDetails.lectures[activeLectureIndex - 1])}>{language === "ar" ? "الدرس السابق" : "Previous lesson"}</Button>
+              <Button variant="outline" disabled={activeLectureIndex >= courseDetails.lectures.length - 1} onClick={() => handleSelectLecture(courseDetails.lectures[activeLectureIndex + 1])}>{language === "ar" ? "الدرس التالي" : "Next lesson"}</Button>
+            </nav>
 
             <Tabs defaultValue="overview" className="mt-5">
               <TabsList className="w-full sm:w-auto">
@@ -1022,11 +975,11 @@ const CourseProgress = () => {
           <Button
             onClick={completed ? handleInCompleteCourse : handleCompleteCourse}
             variant={completed ? "outline" : "default"}
-            title={!completed && !allVideosWatchedAtLeastOnce ? ui("Watch all lectures at least once first") : ""}
+            title={!completed && !canComplete ? (language === "ar" ? "أنهِ الدروس وسلّم اختباراتها أولًا" : "Finish lessons and submit their quizzes first") : ""}
             className={`h-11 w-full rounded-xl px-5 text-sm font-semibold shadow-sm transition sm:hidden ${
               completed
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
-                : allVideosWatchedAtLeastOnce
+                : canComplete
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "cursor-not-allowed bg-secondary text-muted-foreground  "
             }`}
@@ -1045,7 +998,7 @@ const CourseProgress = () => {
             )}
           </Button>
           {!completed && !canComplete && (
-            <p className="mt-2 text-center text-xs text-muted-foreground sm:text-left sm:hidden">{ui("Watch all lectures once to unlock")}</p>
+            <p className="mt-2 text-center text-xs text-muted-foreground sm:text-left sm:hidden">{(language === "ar" ? "أكمِل الدروس وسلّم الاختبارات لإكمال الكورس" : "Finish lessons and submit quizzes to complete this course")}</p>
           )}
           </div>
           {commentsSection}
@@ -1055,4 +1008,8 @@ const CourseProgress = () => {
   );
 };
 
-export default CourseProgress;
+export default function CourseProgressRoute() {
+  const { courseId } = useParams();
+  const userId = useSelector(state => state.auth.user?._id);
+  return <CourseProgress key={`${userId}:${courseId}`} />;
+}

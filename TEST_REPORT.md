@@ -1,5 +1,14 @@
 # سجل التحقق — تدرّج
 
+## Learning dashboard and cross-device resume — 29 October 2026
+
+- Added a personal learning dashboard with status filters, twelve cards per page, current lesson links, recent playback activity and a continue card. Arabic/mobile screenshots were reviewed; the existing shared learning palette is used throughout the new UI.
+- Course completion is derived on the server from current lessons, viewed flags and stored quiz submissions. Deleted/duplicate lesson entries cannot inflate completion, unrelated lesson IDs are rejected, and incomplete courses cannot be marked complete through the completion endpoint. Completion denotes participation, not passing or certification; quiz scores remain separate.
+- Added authenticated, bounded playback-position storage with a unique account/course/lesson key. The player restores its saved position after metadata loads, saves periodically and on pause/seek, displays retryable errors, and guards queued saves against account changes. Added playback-speed selection and previous/next lesson navigation.
+- Frontend tests cover resume-once behavior, failed saves/retry, account switching and dashboard navigation/error states. Unit and isolated MongoDB tests cover completion rules, authorization, invalid positions, unrelated lesson IDs, quiz-derived completion, and private summary data.
+- Chromium checks exercised enrollment through completion, the new dashboard and filters, a fresh browser context resuming the same account's saved playback position, Arabic mobile width, and the existing slow-session login regression. The synthetic fixture and all writes used the isolated local test database; no production learner records, messages or payments were created.
+- Scope and limitations: [LEARNING.md](LEARNING.md). No new pass thresholds, certificates, adaptive video encoding, or course-unit editor are included in this first release.
+
 ## Paginated course access dialog — 29 October 2026
 
 - Added the admin-only `GET /api/v1/course/admin/course-access` endpoint with a required target user, 12 courses per page by default and a hard maximum of 24. Escaped title/instructor-name search, publication and direct-access filters, global grant counts, stable grant-first ordering, and page clamping execute on the server. Responses include only the course identity/title/status, instructor identity/name, and the selected user's direct-access flag.

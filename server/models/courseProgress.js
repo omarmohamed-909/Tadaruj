@@ -12,4 +12,5 @@ const courseProgressSchema = new mongoose.Schema({
     lectureProgress:[lectureProgressSchema]
 });
 
+courseProgressSchema.index({ userId: 1, courseId: 1 });
 export const CourseProgress = mongoose.model("CourseProgress", courseProgressSchema);

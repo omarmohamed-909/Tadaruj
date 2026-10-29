@@ -7,7 +7,8 @@ import { Notification } from "../models/notification.model.js";
 import { AuditLog } from "../models/auditLog.model.js";
 import { register, login, verifyEmail } from "../controllers/user.controller.js";
 import { requestManualOrder, reviewManualOrder } from "../controllers/manualOrder.controller.js";
-import { getCourseProgress } from "../controllers/courseProgress.controller.js";
+import { getCourseProgress, updateCourseProgress, markAsCompleted, submitQuizResult, saveLearningPosition, getMyLearning } from "../controllers/courseProgress.controller.js";
+import { LearningPosition } from "../models/learningPosition.model.js";
 import { editCourse, togglePublishCourse } from "../controllers/course.controller.js";
 import { Lecture } from "../models/lecture.model.js";
 
@@ -29,7 +30,7 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     if ((await mongoose.connection.db.listCollections().toArray()).length) {
       throw new Error("Test database must be empty.");
     }
-    await Promise.all([User.init(), Course.init(), CoursePurchase.init(), Notification.init(), AuditLog.init()]);
+    await Promise.all([User.init(), Course.init(), CoursePurchase.init(), Notification.init(), AuditLog.init(), LearningPosition.init()]);
   }, 20000);
   beforeEach(async () => {
     teacher = await User.create({ name: "Test Teacher", email: `teacher-${new mongoose.Types.ObjectId()}@example.test`, password: "test-only", role: "instructor", emailVerified: true, instructorWhatsapp: "+201001234567" });
@@ -57,6 +58,44 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     await getCourseProgress({ id: String(student._id), user: student, params: { courseId: String(course._id) } }, res);
     return res;
   };
+
+  it("keeps playback private, validates lesson ownership, and derives completion from saved quizzes", async () => {
+    const lecture = await Lecture.create({ lectureTitle: "First lesson", quizQuestions: [{ questionText: "One plus one?", options: ["2", "3"], correctOptionIndex: 0 }] });
+    course.lectures = [lecture._id];
+    await course.save();
+    const req = { id: String(student._id), user: student, params: { courseId: String(course._id), lectureId: String(lecture._id) }, body: { position: 42, duration: 120 }, query: {} };
+    const denied = response();
+    await saveLearningPosition(req, denied);
+    expect(denied.status).toHaveBeenCalledWith(403);
+    student.enrolledCourses = [course._id]; await student.save();
+    const invalid = response();
+    await saveLearningPosition({ ...req, body: { position: 130, duration: 120 } }, invalid);
+    expect(invalid.status).toHaveBeenCalledWith(400);
+    const wrongLecture = response();
+    await updateCourseProgress({ ...req, params: { ...req.params, lectureId: String(new mongoose.Types.ObjectId()) } }, wrongLecture);
+    expect(wrongLecture.status).toHaveBeenCalledWith(404);
+    const saved = response(); await saveLearningPosition(req, saved);
+    expect(saved.status).toHaveBeenCalledWith(200);
+    let loaded = await access();
+    expect(payload(loaded).data.positions[0].position).toBe(42);
+    expect(payload(loaded).data.completed).toBe(false);
+    const viewed = response(); await updateCourseProgress(req, viewed);
+    expect(viewed.status).toHaveBeenCalledWith(200);
+    const premature = response(); await markAsCompleted(req, premature);
+    expect(premature.status).toHaveBeenCalledWith(409);
+    const attempted = response(); await submitQuizResult({ ...req, body: { answers: [1] } }, attempted);
+    expect(attempted.status).toHaveBeenCalledWith(200);
+    loaded = await access();
+    expect(payload(loaded).data.completed).toBe(true);
+    expect(payload(loaded).data.quizCompleted[String(lecture._id)]).toBe(true);
+    expect(payload(loaded).data.quizResults[0].percentage).toBe(0);
+    const listing = response(); await getMyLearning(req, listing);
+    expect(payload(listing).counts.completed).toBe(1);
+    expect(payload(listing).courses[0].resumeLectureId.toString()).toBe(String(lecture._id));
+    expect(JSON.stringify(payload(listing))).not.toContain("correctOptionIndex");
+    const outsider = response(); await getMyLearning({ ...req, id: String(teacher._id) }, outsider);
+    expect(payload(outsider).courses).toEqual([]);
+  });
 
   it("registers a student, blocks unverified login, verifies the signed token and sets a login cookie", async () => {
     vi.stubEnv("SECRET_KEY", "isolated-test-secret-not-for-production");

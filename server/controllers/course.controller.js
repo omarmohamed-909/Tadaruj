@@ -1,4 +1,5 @@
 import { reportError } from "../utils/logger.js";
+import { LearningPosition } from "../models/learningPosition.model.js";
 import mongoose from "mongoose";
 import { readAdminCourseFilters, readAdminCoursePage } from "../utils/adminCourses.js";
 import { verifyDirectUpload } from "../utils/directUploads.js";
@@ -371,6 +372,7 @@ export const deleteCourse = async (req, res) => {
             QuizResult.deleteMany({ courseId }),
             CoursePurchase.deleteMany({ courseId }),
             CourseProgress.deleteMany({ courseId }),
+            LearningPosition.deleteMany({ courseId }),
             Notification.deleteMany({
                 link: { $regex: courseNotificationLinkPattern },
             }),

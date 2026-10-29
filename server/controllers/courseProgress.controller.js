@@ -8,6 +8,8 @@ import { Lecture } from "../models/lecture.model.js";
 import { CoursePurchase } from "../models/coursePurchase.model.js";
 import { User } from "../models/user.model.js";
 import { QuizResult } from "../models/quizResult.model.js";
+import { LearningPosition } from "../models/learningPosition.model.js";
+import { learningSummary } from "../utils/learningSummary.js";
 import { getProtectedMediaUrl } from "../utils/cloudinary.js";
 
 const MAX_QUIZ_ATTEMPTS = 3;
@@ -47,6 +49,72 @@ const ensureCourseAccess = async (courseId, userId, role) => {
 
 const ensureLectureBelongsToCourse = (course, lectureId) =>
   course?.lectures?.some((courseLectureId) => courseLectureId.toString() === lectureId);
+
+export const saveLearningPosition = async (req, res) => {
+  try {
+    const { courseId, lectureId } = req.params;
+    const { position, duration } = req.body;
+    if (!mongoose.isValidObjectId(courseId) || !mongoose.isValidObjectId(lectureId) ||
+        typeof position !== "number" || typeof duration !== "number" ||
+        !Number.isFinite(position) || !Number.isFinite(duration) || position < 0 ||
+        duration <= 0 || duration > 86400 || position > duration) {
+      return res.status(400).json({ message: "Invalid playback position." });
+    }
+    const access = await ensureCourseAccess(courseId, req.id, req.user?.role);
+    if (access.error) return res.status(access.error.status).json({ message: access.error.message });
+    if (!ensureLectureBelongsToCourse(access.course, lectureId)) return res.status(404).json({ message: "Lecture not found in this course." });
+    const filter = { userId: req.id, courseId, lectureId };
+    const update = { $set: { position, duration } };
+    try {
+      await LearningPosition.findOneAndUpdate(filter, update, { upsert: true, runValidators: true });
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      await LearningPosition.findOneAndUpdate(filter, update, { runValidators: true });
+    }
+    // Playback position is a convenience; it never grants completion or access.
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    reportError("learning.save_position.failed", error);
+    return res.status(500).json({ message: "Could not save playback position." });
+  }
+};
+
+export const getMyLearning = async (req, res) => {
+  try {
+    const userId = req.id;
+    const user = await User.findById(userId).select("enrolledCourses").lean();
+    const ids = user?.enrolledCourses || [];
+    const [courses, progresses, results, positions] = await Promise.all([
+      Course.find({ _id: { $in: ids } }).select("courseTitle courseThumbnail subject creator lectures")
+        .populate({ path: "creator", select: "name" })
+        .populate({ path: "lectures", select: "lectureTitle quizQuestions._id" }).lean(),
+      CourseProgress.find({ userId, courseId: { $in: ids.map(String) } }).lean(),
+      QuizResult.find({ userId, courseId: { $in: ids } }).select("courseId lectureId attemptsCount").lean(),
+      LearningPosition.find({ userId, courseId: { $in: ids } }).select("courseId lectureId position duration updatedAt").sort({ updatedAt: -1 }).lean(),
+    ]);
+    const items = courses.map(course => {
+      const id = String(course._id);
+      const progress = progresses.find(item => item.courseId === id);
+      const summary = learningSummary(course.lectures, progress?.lectureProgress, results.filter(item => String(item.courseId) === id));
+      const latest = positions.find(item => String(item.courseId) === id && course.lectures.some(lecture => String(lecture._id) === String(item.lectureId)));
+      const started = Boolean(latest || progress?.lectureProgress?.length || Object.keys(summary.quizCompleted).length);
+      const next = course.lectures.find(lecture => !progress?.lectureProgress?.some(item => item.lectureId === String(lecture._id) && item.viewed) || (lecture.quizQuestions?.length && !summary.quizCompleted[String(lecture._id)]));
+      const resume = course.lectures.find(lecture => String(lecture._id) === String(latest?.lectureId)) || next || course.lectures[0];
+      const { lectures: _lectures, ...publicCourse } = course;
+      return { ...publicCourse, ...summary, status: summary.completed ? "completed" : started ? "in-progress" : "not-started", lastActivity: latest?.updatedAt || null, resumeLectureId: resume?._id || null, resumeLectureTitle: resume?.lectureTitle || "", resumePosition: latest?.position || 0 };
+    }).sort((a, b) => new Date(b.lastActivity || 0) - new Date(a.lastActivity || 0) || String(a._id).localeCompare(String(b._id)));
+    const counts = { all: items.length, "in-progress": 0, completed: 0, "not-started": 0 };
+    items.forEach(item => counts[item.status]++);
+    const filtered = ["in-progress", "completed", "not-started"].includes(req.query.status) ? items.filter(item => item.status === req.query.status) : items;
+    const totalPages = Math.ceil(filtered.length / 12);
+    const requestedPage = Number.parseInt(req.query.page, 10) || 1;
+    const page = Math.max(1, Math.min(requestedPage, totalPages || 1));
+    return res.status(200).json({ courses: filtered.slice((page - 1) * 12, page * 12), counts, page, totalPages, continueCourse: items.find(item => item.status === "in-progress") || null });
+  } catch (error) {
+    reportError("learning.list.failed", error);
+    return res.status(500).json({ message: "Could not load your learning space." });
+  }
+};
 
 const getNestedCommentIds = async ({ courseId, lectureId, rootCommentId }) => {
   const nestedIds = [rootCommentId.toString()];
@@ -232,23 +300,18 @@ export const getCourseProgress = async (req, res) => {
       }));
     }
 
-    //step-2 if no progress found ,return course details with an empty progress
-    if (!courseProgress) {
-      return res.status(200).json({
-        data: {
-          courseDetails: safeCourseDetails,
-          progress: [],
-          completed: false,
-        },
-      });
-    }
-
-    // step-3 return the user's course progress alog with course details
+    const [quizResults, positions] = await Promise.all([
+      QuizResult.find({ userId, courseId }).select("lectureId attemptsCount bestPercentage percentage").lean(),
+      LearningPosition.find({ userId, courseId }).select("lectureId position duration updatedAt").sort({ updatedAt: -1 }).lean(),
+    ]);
+    const summary = learningSummary(safeCourseDetails.lectures, courseProgress?.lectureProgress, quizResults);
     return res.status(200).json({
       data: {
         courseDetails: safeCourseDetails,
-        progress: courseProgress.lectureProgress,
-        completed: courseProgress.completed,
+        progress: courseProgress?.lectureProgress || [],
+        ...summary,
+        quizResults,
+        positions,
       },
     });
   } catch (error) {
@@ -269,6 +332,9 @@ export const updateCourseProgress = async (req, res) => {
       });
     }
 
+    if (!ensureLectureBelongsToCourse(accessResult.course, lectureId)) {
+      return res.status(404).json({ message: "Lecture not found in this course." });
+    }
     // fetch or create course progress
     let courseProgress = await CourseProgress.findOne({ courseId, userId });
 
@@ -298,15 +364,11 @@ export const updateCourseProgress = async (req, res) => {
       });
     }
 
-    //if all lecture is complete
-    const lectureProgressLength = courseProgress.lectureProgress.filter(
-      (lectureProg) => lectureProg.viewed
-    ).length;
-
-    const course = await Course.findById(courseId);
-    if (course.lectures.length === lectureProgressLength) {
-      courseProgress.completed = true;
-    }
+    const [lectures, results] = await Promise.all([
+      Lecture.find({ _id: { $in: accessResult.course.lectures } }).select("quizQuestions"),
+      QuizResult.find({ userId, courseId }).select("lectureId attemptsCount"),
+    ]);
+    courseProgress.completed = learningSummary(lectures, courseProgress.lectureProgress, results).completed;
     await courseProgress.save();
 
     return res.status(200).json({
@@ -336,9 +398,13 @@ export const markAsCompleted = async (req, res) => {
         message: "Course progress not found",
       });
     }
-    courseProgress.lectureProgress.map(
-      (lectureProgress) => (lectureProgress.viewed = true)
-    );
+    const [lectures, results] = await Promise.all([
+      Lecture.find({ _id: { $in: accessResult.course.lectures } }).select("quizQuestions"),
+      QuizResult.find({ userId, courseId }).select("lectureId attemptsCount"),
+    ]);
+    if (!learningSummary(lectures, courseProgress.lectureProgress, results).completed) {
+      return res.status(409).json({ message: "Finish every lesson and submit its quiz before completing this course." });
+    }
     courseProgress.completed = true;
     await courseProgress.save();
     return res.status(200).json({
