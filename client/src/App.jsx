@@ -48,6 +48,7 @@ const CourseDetail = lazy(() => import("./pages/student/CourseDetail"));
 const CourseProgress = lazy(() => import("./pages/student/CourseProgress"));
 const InstructorProfile = lazy(() => import("./pages/student/InstructorProfile"));
 const InstructorsDirectory = lazy(() => import("./pages/student/InstructorsDirectory"));
+const LegalPage = lazy(() => import("./pages/LegalPage"));
 
 const appRouter = createBrowserRouter([
   {
@@ -56,6 +57,9 @@ const appRouter = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       { id: "not-found", path: "*", element: <NotFound /> },
+      { path: "privacy", element: <LegalPage policy="privacy" /> },
+      { path: "terms", element: <LegalPage policy="terms" /> },
+      { path: "refund-policy", element: <LegalPage policy="refunds" /> },
       {
         path: "/",
         element: (

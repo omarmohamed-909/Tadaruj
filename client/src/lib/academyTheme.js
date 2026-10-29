@@ -1,4 +1,7 @@
 const themedRoutes = [
+  "/privacy",
+  "/terms",
+  "/refund-policy",
   "/instructor",
   "/courses",
   "/course/search",
