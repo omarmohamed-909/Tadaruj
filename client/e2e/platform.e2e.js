@@ -120,6 +120,7 @@ test("student registers, verifies, requests enrollment, receives instructor appr
   expect((await context.request.get(`${api}/progress/${fixture.courseId}`)).status()).toBe(403);
   const before = await (await context.request.get(`${api}/purchase/course/${fixture.courseId}/detail-with-status`)).json();
   expect(before.course.lectures.every((lecture) => !lecture.videoUrl)).toBe(true);
+  await expect(page.getByRole("link", { name: "payments and refunds policy", exact: true })).toHaveAttribute("href", "/refund-policy");
   const popupReady = page.waitForEvent("popup");
   await page.getByRole("button", { name: "Request via WhatsApp", exact: true }).click();
   const popup = await popupReady;

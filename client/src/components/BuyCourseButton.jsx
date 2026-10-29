@@ -4,9 +4,10 @@ import BrandedLoader from "./BrandedLoader";
 import { toast } from "sonner";
 import { useLanguage } from "@/components/languageContext";
 import { useRequestManualOrderMutation } from "@/features/api/purchaseApi";
+import { Link } from "react-router-dom";
 
 const BuyCourseButton = ({ courseId }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [requestOrder, { isLoading }] = useRequestManualOrderMutation();
 
   const handleOrder = async () => {
@@ -24,10 +25,16 @@ const BuyCourseButton = ({ courseId }) => {
   };
 
   return (
-    <Button onClick={handleOrder} disabled={isLoading} className="flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-      {isLoading ? <BrandedLoader variant="tiny" /> : <MessageCircle className="h-4 w-4" />}
-      {isLoading ? t("creatingOrder") : t("requestOnWhatsapp")}
-    </Button>
+    <div className="w-full space-y-3">
+      <Button onClick={handleOrder} disabled={isLoading} className="flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+        {isLoading ? <BrandedLoader variant="tiny" /> : <MessageCircle className="h-4 w-4" />}
+        {isLoading ? t("creatingOrder") : t("requestOnWhatsapp")}
+      </Button>
+      <p className="text-center text-xs leading-6 text-muted-foreground">
+        {language === "ar" ? "قبل الدفع، راجع " : "Before paying, review our "}
+        <Link to="/refund-policy" target="_blank" rel="noopener noreferrer" title={language === "ar" ? "يفتح في تبويب جديد" : "Opens in a new tab"} className="rounded-sm font-semibold text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{language === "ar" ? "سياسة الدفع والاسترداد" : "payments and refunds policy"}</Link>
+      </p>
+    </div>
   );
 };
 

@@ -24,14 +24,15 @@ import {
 import BrandedLoader from "@/components/BrandedLoader";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useLanguage } from "@/components/languageContext";
 import { useFeedbackText } from "@/components/useUiText";
+import { legalLabel, legalNavigation } from "@/lib/legalNavigation";
 
 const Login = () => {
   const feedback = useFeedbackText();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [signupInput, setSignupInput] = useState({
     name: "",
     email: "",
@@ -336,6 +337,9 @@ const Login = () => {
             </Card>
             </form>
           </TabsContent>
+          <nav aria-label={legalLabel(language)} className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1 border-t border-[#c8ddd3] pt-4 text-center dark:border-[#2a5552]">
+            {legalNavigation.map(item => <Link key={item.key} to={item.path} target="_blank" rel="noopener noreferrer" title={language === "ar" ? "يفتح في تبويب جديد" : "Opens in a new tab"} className="rounded-lg px-1 py-2 text-xs font-medium text-[#126252] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#126252] dark:text-teal-200 dark:focus-visible:outline-teal-200">{item[language === "ar" ? "ar" : "en"]}</Link>)}
+          </nav>
         </Tabs>
       </div>
     </div>

@@ -38,4 +38,15 @@ test("footer policies are public, localized, and usable after a direct mobile re
   await expect(page).toHaveURL(/\/refund-policy#before-paying$/);
   await expect(page.locator("#before-paying")).toBeInViewport();
   await page.screenshot({ path: test.info().outputPath("refund-policy-ar-mobile.png"), fullPage: false });
+  await page.goto("/login?mode=signup");
+  await expect(page.locator("footer")).toHaveCount(0);
+  const signupPolicies = page.getByRole("navigation", { name: "السياسات", exact: true });
+  for (const [, route, title] of pages) await expect(signupPolicies.getByRole("link", { name: title, exact: true })).toHaveAttribute("href", route);
+  const policyPopup = page.waitForEvent("popup");
+  await signupPolicies.getByRole("link", { name: "سياسة الخصوصية", exact: true }).click();
+  const privacy = await policyPopup;
+  await expect(privacy).toHaveURL(/\/privacy$/);
+  await expect(privacy.getByRole("heading", { name: "سياسة الخصوصية", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/login\?mode=signup$/);
+  await privacy.close();
 });
