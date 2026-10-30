@@ -1,3 +1,4 @@
+import CurriculumList from "@/components/CurriculumList";
 import { useUiText, useFeedbackText } from "@/components/useUiText";
 import { useLanguage } from "@/components/languageContext";
 import { Badge } from "@/components/ui/badge";
@@ -888,7 +889,7 @@ const CourseProgress = () => {
 
             {/* Scrollable List */}
             <div className="flex-1 overflow-y-auto p-2 pb-4 space-y-2 custom-scrollbar bg-muted">
-              {courseDetails?.lectures.map((lecture, index) => {
+              <CurriculumList lectures={courseDetails.lectures} units={courseDetails.units} renderLecture={(lecture, index) => {
                 const isActive = lecture._id === activeLecture?._id;
                 const hasQuiz = lecture.quizQuestions?.length > 0;
                 const isCompleted = isLectureCompleted(lecture._id);
@@ -962,7 +963,7 @@ const CourseProgress = () => {
                     )}
                   </div>
                 );
-              })}
+              }} />
             </div>
           </CardContent>
         </Card>

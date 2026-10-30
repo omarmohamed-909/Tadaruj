@@ -1,4 +1,5 @@
 import { reportError } from "../utils/logger.js";
+import { canonicalLectureOrder } from "../utils/curriculum.js";
 import { LearningPosition } from "../models/learningPosition.model.js";
 import mongoose from "mongoose";
 import { readAdminCourseFilters, readAdminCoursePage } from "../utils/adminCourses.js";
@@ -461,7 +462,15 @@ export const createLecture = async (req,res) => {
         const course = await Course.findById(courseId);
         if(course){
             course.lectures.push(lecture._id);
-            await course.save();
+            if (course.units?.length) course.lectures = canonicalLectureOrder(course.lectures, course.units);
+            course.increment();
+            try {
+                await course.save();
+            } catch (error) {
+                if (error.name !== "VersionError") throw error;
+                await Lecture.findByIdAndDelete(lecture._id);
+                return res.status(409).json({ message: "Course content changed. Reload it before adding a lesson." });
+            }
         }
 
         return res.status(201).json({
@@ -530,7 +539,7 @@ export const getCourseLecture = async (req, res) => {
                 return safeQuestion;
             }) };
         });
-        return res.status(200).json({ lectures: safeLectures });
+        return res.status(200).json({ lectures: safeLectures, units: course.units || [], revision: course.__v ?? 0 });
     } catch (error) {
         reportError("course.get_course_lecture.failed", error);
         return res.status(500).json({ message: "Failed to get lectures" });
@@ -691,6 +700,8 @@ export const reorderLecture = async (req,res) => {
             (item) => item.toString() === lectureId
         );
 
+        if (course.units?.length) return res.status(409).json({ message: "Use the course structure editor to reorder lessons inside units." });
+
         if (currentIndex === -1) {
             return res.status(404).json({
                 message: "Lecture not found in this course"
@@ -710,6 +721,7 @@ export const reorderLecture = async (req,res) => {
             course.lectures[currentIndex],
         ];
 
+        course.increment();
         await course.save();
 
         return res.status(200).json({
@@ -751,7 +763,13 @@ export const removeLecture = async (req,res) => {
         // Remove the lecture reference from the associated course
         await Course.updateOne(
             {lectures:lectureId}, // find the course that contains the lecture
-            {$pull:{lectures:lectureId}} // Remove the lectures id from the lectures array
+            [{ $set: {
+                lectures: { $filter: { input: "$lectures", as: "id", cond: { $ne: ["$$id", lecture._id] } } },
+                units: { $map: { input: { $ifNull: ["$units", []] }, as: "unit", in: { $mergeObjects: ["$$unit", {
+                    lectureIds: { $filter: { input: "$$unit.lectureIds", as: "id", cond: { $ne: ["$$id", lecture._id] } } }
+                }] } } },
+                __v: { $add: [{ $ifNull: ["$__v", 0] }, 1] }
+            } }]
         );
 
         return res.status(200).json({

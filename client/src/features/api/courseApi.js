@@ -1,3 +1,4 @@
+import { courseProgressApi } from "./courseProgressApi";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { purchaseApi } from "./purchaseApi";
 
@@ -195,6 +196,17 @@ export const courseApi = createApi({
       }),
       invalidatesTags: (result, error, { courseId }) => error ? [] : ["Refresh_Lecture", { type: "Refresh_Course", id: courseId }],
     }),
+    updateCurriculum: builder.mutation({
+      query: ({ courseId, ...body }) => ({ url: `/${courseId}/curriculum`, method: "PUT", body }),
+      async onQueryStarted({ courseId }, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          dispatch(purchaseApi.util.invalidateTags([{ type: "PurchaseStatus", id: courseId }]));
+          dispatch(courseProgressApi.util.invalidateTags(["Learning", { type: "CourseContent", id: courseId }]));
+        } catch { /* Failed saves preserve cached content and the local draft. */ }
+      },
+      invalidatesTags: (result, error, { courseId }) => error ? [] : ["Refresh_Lecture", { type: "Refresh_Course", id: courseId }],
+    }),
     getCourseLecture: builder.query({
       query: (courseId) => ({
         url: `/${courseId}/lecture`,
@@ -285,6 +297,7 @@ export const courseApi = createApi({
   }),
 });
 export const {
+  useUpdateCurriculumMutation,
   useGetCourseFiltersQuery,
   useCreateCourseMutation,
   useGetSearchCourseQuery,

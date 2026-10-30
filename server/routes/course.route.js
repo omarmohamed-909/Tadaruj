@@ -1,4 +1,5 @@
 import express from "express";
+import { updateCurriculum } from "../controllers/curriculum.controller.js";
 import authorizeRoles from "../middlewares/authorizeRoles.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
 import requireCourseManager from "../middlewares/requireCourseManager.js";
@@ -21,6 +22,7 @@ router.route("/:courseId").put(isAuthenticated,requireCourseManager,upload.singl
 router.route("/:courseId").delete(isAuthenticated,requireCourseManager, deleteCourse);
 router.route("/:courseId").get(isAuthenticated, getCourseById);
 router.route("/:courseId/lecture").post(isAuthenticated,requireCourseManager, createLecture);
+router.put("/:courseId/curriculum", isAuthenticated, requireCourseManager, updateCurriculum);
 router.route("/:courseId/lecture").get(isAuthenticated, getCourseLecture);
 router.route("/:courseId/lecture/:lectureId/reorder").post(isAuthenticated,requireCourseManager, reorderLecture);
 router.route("/:courseId/lecture/:lectureId").post(isAuthenticated,requireCourseManager, uploadPdf.single("attachment"), editLecture);

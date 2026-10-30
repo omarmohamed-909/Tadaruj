@@ -42,6 +42,7 @@ const courseSchema = new mongoose.Schema({
             type:mongoose.Schema.Types.ObjectId,
             ref:"User",
         },
+        units: { type: [{ title: { type: String, trim: true, maxlength: 100, required: true }, lectureIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Lecture" }] }], default: [] },
         isPublished:{
             type:Boolean,
             default:false

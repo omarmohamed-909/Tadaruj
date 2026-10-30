@@ -1,5 +1,14 @@
 # سجل التحقق — تدرّج
 
+
+## Course units and curriculum editor — 30 October 2026
+
+- Added bilingual instructor/admin tools for adding and renaming units, moving lessons between groups, reordering units and lessons, saving/discarding changes, and guarding navigation with an unsaved draft. Removing a unit preserves its lessons. Empty units remain hidden in student views.
+- The course-detail page and learning sidebar use the same saved grouping and canonical lesson sequence. Existing flat courses retain their lesson order without migration; progress and enrollment policies remain unchanged.
+- The manager-only curriculum endpoint validates the exact lesson set and atomically compares course revisions. Tests cover concurrent saves, stale versions, foreign or duplicate lesson references, unauthorized actors, unit removal, new lessons, and deleting lessons from legacy documents without units.
+- Validation: 372 backend tests, 160 frontend tests and 11 Chromium journeys passed. Browser coverage for instructor creation/reordering/save/reload, student unit headings and Arabic dark-mode mobile layout. Lint, production build and startup budget passed (487,605 raw / 156,129 gzip JavaScript bytes). Browser/database writes use synthetic isolated fixtures only.
+- Reviewed the Arabic mobile editor screenshot. Existing deferred video-engine chunk warnings remain; no new prerequisite, drip-release, certificate or quiz-pass policy is introduced. Details: [LEARNING.md](LEARNING.md#course-units).
+
 ## Learning dashboard and cross-device resume — 29 October 2026
 
 - Added a personal learning dashboard with status filters, twelve cards per page, current lesson links, recent playback activity and a continue card. Arabic/mobile screenshots were reviewed; the existing shared learning palette is used throughout the new UI.

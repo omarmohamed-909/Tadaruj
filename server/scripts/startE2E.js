@@ -38,7 +38,7 @@ const courses = await Course.insertMany(Array.from({ length: 26 }, (_, index) =>
   coursePrice: 250, ...(index === 0 ? { lectures: [lecture._id] } : {}),
 })));
 await Course.create({ courseTitle: "E2E unpublished draft", creator: instructor._id, subject: "Unreleased", isPublished: false });
-await writeFile(`${directory}e2e-fixtures.json`, JSON.stringify({ instructorId: String(instructor._id), instructorEmail: instructor.email, adminEmail: admin.email, password, courseId: String(courses[0]._id), lectureId: String(lecture._id), courseCount: 26 }));
+await writeFile(`${directory}e2e-fixtures.json`, JSON.stringify({ instructorId: String(instructor._id), instructorEmail: instructor.email, adminEmail: admin.email, password, courseId: String(courses[0]._id), lectureId: String(lecture._id), courseCount: 26, curriculumCourseId: String(courses[25]._id) }));
 
 // A deterministic local stand-in for the external media provider, not an API bypass.
 const media = http.createServer(async (req, res) => {

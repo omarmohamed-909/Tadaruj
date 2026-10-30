@@ -1,3 +1,4 @@
+import CurriculumList from "@/components/CurriculumList";
 import { useUiText, useFeedbackText } from "@/components/useUiText";
 import BuyCourseButton from "@/components/BuyCourseButton";
 import PageSkeleton from "@/components/PageSkeleton";
@@ -239,7 +240,7 @@ const CourseDetail = () => {
             </CardHeader>
             <CardContent className="space-y-3 p-5 md:p-6">
               <div className="max-h-[68vh] overflow-auto pr-2 space-y-2">
-              {lectures.map((lecture, index) => (
+              <CurriculumList lectures={lectures} units={course?.units} renderLecture={(lecture, index) => (
                 <button
                   key={lecture._id}
                   type="button"
@@ -272,7 +273,7 @@ const CourseDetail = () => {
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">{" "}{ui("Locked")}{" "}</span>
                   )}
                 </button>
-              ))}
+              )} />
               </div>
               {lectureCount === 0 && (
                 <p className="text-sm text-muted-foreground">{ui("No lectures added yet.")}</p>

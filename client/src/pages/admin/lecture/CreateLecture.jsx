@@ -1,3 +1,4 @@
+import { useLanguage } from "@/components/languageContext";
 import { useUiText, useFeedbackText } from "@/components/useUiText";
 import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/PageSkeleton";
@@ -7,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import {
   useCreateLectureMutation,
   useGetCourseLectureQuery,
-  useReorderLectureMutation,
 } from "@/features/api/courseApi";
 import { BookOpen, PlusCircle } from "lucide-react";
 import BrandedLoader from "@/components/BrandedLoader";
@@ -15,12 +15,14 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useWorkspacePath } from "@/lib/useWorkspacePath";
-import Lecture from "./Lecture";
+import CurriculumEditor from "./CurriculumEditor";
 
 const CreateLecture = () => {
+  const { language } = useLanguage();
   const feedback = useFeedbackText();
   const ui = useUiText();
   const [lectureTitle, setLectureTitle] = useState("");
+  const [structureDirty, setStructureDirty] = useState(false);
   const params = useParams();
   const courseId = params.courseId;
   const navigate = useNavigate();
@@ -28,7 +30,6 @@ const CreateLecture = () => {
 
   const [createLecture, { data, isLoading, isSuccess, error }] =
     useCreateLectureMutation();
-  const [reorderLecture, { isLoading: isReordering }] = useReorderLectureMutation();
 
   const {
     data: lectureData,
@@ -51,16 +52,6 @@ const CreateLecture = () => {
       toast.error(feedback(error?.data?.message, ui("Something went wrong. Please try again.")));
     }
   }, [isSuccess, error, data, refetch, feedback, ui]);
-
-  const reorderLectureHandler = async (lectureId, direction) => {
-    try {
-      const response = await reorderLecture({ courseId, lectureId, direction }).unwrap();
-      toast.success(feedback(response?.message, ui("Changes saved.")));
-      refetch();
-    } catch (reorderError) {
-      toast.error(feedback(reorderError?.data?.message || ui("Failed to reorder lecture."), ui("Failed to reorder lecture.")));
-    }
-  };
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -103,12 +94,13 @@ const CreateLecture = () => {
             />
           </div>
 
+          {structureDirty && <p className="text-sm text-muted-foreground">{language === "ar" ? "احفظ تنظيم الوحدات أو ألغِ تعديلاته قبل إضافة درس جديد." : "Save or discard your structure changes before creating a lesson."}</p>}
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
               onClick={() => navigate(workspacePath(`/course/${courseId}`))}
             >{" "}{ui("Back to Course")}{" "}</Button>
-            <Button disabled={isLoading || !lectureTitle.trim()} onClick={createLectureHandler}>
+            <Button disabled={isLoading || structureDirty || !lectureTitle.trim()} onClick={createLectureHandler}>
               {isLoading ? (
                 <>
                   <BrandedLoader variant="tiny" className="mr-2" />{" "}{ui("Please wait")}{" "}</>
@@ -130,33 +122,11 @@ const CreateLecture = () => {
           {lectureLoading ? (
             <ListSkeleton items={5} />
           ) : lectureError ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{ui("Failed to load lectures.")}</p>
-          ) : lectureData.lectures.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-muted px-5 py-8 text-center dark:border-border dark:bg-secondary/50">
-              <p className="font-medium text-foreground dark:text-foreground">{ui("No lectures added yet")}</p>
-              <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">{" "}{ui("Create your first lecture to start building the course structure.")}{" "}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {lectureData?.lectures?.map((lecture, index) => {
-              // لو الـ lecture نفسه object نستخدم _id، لو مجرد string نستخدمه زي ما هو
-              const key = typeof lecture === "string" ? lecture : lecture._id;
-
-              return (
-                <Lecture
-                  key={key || index}
-                  lecture={
-                    typeof lecture === "string" ? { _id: lecture } : lecture
-                  }
-                  index={index}
-                  totalLectures={lectureData?.lectures?.length || 0}
-                  isReordering={isReordering}
-                  onReorder={reorderLectureHandler}
-                />
-              );
-              })}
-            </div>
-          )}
+            <div role="alert" className="space-y-3"><p className="text-sm text-destructive">{ui("Failed to load lectures.")}</p><Button variant="outline" onClick={() => refetch()}>{language === "ar" ? "حاول مرة أخرى" : "Try again"}</Button></div>
+          ) : lectureData ? (
+            <CurriculumEditor key={courseId} courseId={courseId} data={lectureData} onDirtyChange={setStructureDirty} onReload={() => refetch().unwrap()} />
+          ) : null
+          }
         </CardContent>
       </Card>
     </div>

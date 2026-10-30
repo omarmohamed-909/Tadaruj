@@ -282,3 +282,36 @@ test.describe("mobile catalog", () => {
     await page.screenshot({ path: test.info().outputPath("mobile-catalog.png"), fullPage: false });
   });
 });
+
+
+test("instructor organizes units and students see the saved curriculum", async ({ page }, testInfo) => {
+  const fixture = await fixtures();
+  await login(page, fixture.instructorEmail, fixture.password);
+  const courseId = fixture.curriculumCourseId;
+  await page.goto(`/instructor/course/${courseId}/lecture`);
+  for (const title of ["Unit introduction", "Unit practice"]) {
+    await page.getByPlaceholder("Example: Introduction to Docker").fill(title);
+    await page.getByRole("button", { name: "Create Lecture", exact: true }).click();
+    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+  }
+  await page.getByRole("button", { name: "Add unit", exact: true }).click();
+  await page.getByLabel("Unit 1 title").fill("Foundations");
+  await page.getByLabel("Unit for Unit introduction").selectOption({ label: "Foundations" });
+  await page.getByLabel("Unit for Unit practice").selectOption({ label: "Foundations" });
+  await page.getByRole("button", { name: "Move lesson up Unit practice", exact: true }).click();
+  await page.getByRole("button", { name: "Save structure", exact: true }).click();
+  await expect(page.getByText("Units and lesson order saved.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Unit 1 title")).toHaveValue("Foundations");
+  await expect(page.getByLabel("Unit for Unit introduction")).toHaveValue(await page.getByLabel("Unit for Unit practice").inputValue());
+  await page.getByRole("button", { name: "Switch to dark mode", exact: true }).click();
+  await page.getByRole("button", { name: "Change language", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("heading", { name: "الوحدات والدروس" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("curriculum-ar-mobile.png"), fullPage: true });
+  await page.goto(`/course-detail/${courseId}`);
+  await expect(page.getByRole("heading", { name: /Foundations/ })).toBeVisible();
+  await page.goto(`/course-progress/${courseId}`);
+  await expect(page.getByRole("heading", { name: /Foundations/ })).toBeVisible();
+});

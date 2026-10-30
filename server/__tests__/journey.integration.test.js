@@ -1,3 +1,5 @@
+import { updateCurriculum } from "../controllers/curriculum.controller.js";
+import { removeLecture, createLecture, reorderLecture } from "../controllers/course.controller.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import mongoose from "mongoose";
 import { User } from "../models/user.model.js";
@@ -58,6 +60,57 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     await getCourseProgress({ id: String(student._id), user: student, params: { courseId: String(course._id) } }, res);
     return res;
   };
+
+  it("saves units atomically, rejects stale or unauthorized edits, and safely removes references", async () => {
+    const lessons = await Lecture.create([{ lectureTitle: "Intro" }, { lectureTitle: "Motion" }]);
+    course.lectures = lessons.map(item => item._id); await course.save();
+    const ids = lessons.map(item => String(item._id));
+    const req = { id: String(teacher._id), user: teacher, params: { courseId: String(course._id) }, body: { revision: course.__v, unassignedLectureIds: [], units: [{ title: "Fundamentals", lectureIds: ids.slice().reverse() }] } };
+    const forbidden = response(); await updateCurriculum({ ...req, id: String(student._id), user: student }, forbidden);
+    expect(forbidden.status).toHaveBeenCalledWith(403);
+    const otherInstructor = response(); await updateCurriculum({ ...req, id: String(student._id) }, otherInstructor);
+    expect(otherInstructor.status).toHaveBeenCalledWith(403);
+    const invalid = response(); await updateCurriculum({ ...req, body: { ...req.body, unassignedLectureIds: [ids[0]] } }, invalid);
+    expect(invalid.status).toHaveBeenCalledWith(400);
+    const saved = response(); await updateCurriculum(req, saved); expect(saved.status).toHaveBeenCalledWith(200);
+    let latest = await Course.findById(course._id);
+    expect(latest.lectures.map(String)).toEqual(ids.slice().reverse());
+    expect(latest.units[0].title).toBe("Fundamentals");
+    const stale = response(); await updateCurriculum(req, stale); expect(stale.status).toHaveBeenCalledWith(409);
+    student.enrolledCourses = [course._id]; await student.save();
+    const visible = await access(); expect(payload(visible).data.courseDetails.units[0].title).toBe("Fundamentals");
+    const deleted = response(); await removeLecture({ params: { lectureId: ids[0] } }, deleted);
+    expect(deleted.status).toHaveBeenCalledWith(200);
+    latest = await Course.findById(course._id);
+    expect(latest.lectures.map(String)).toEqual([ids[1]]);
+    expect(latest.units[0].lectureIds.map(String)).toEqual([ids[1]]);
+    const ungrouped = response(); await updateCurriculum({ ...req, body: { revision: latest.__v, units: [], unassignedLectureIds: [ids[1]] } }, ungrouped);
+    expect(ungrouped.status).toHaveBeenCalledWith(200);
+    expect(await Lecture.findById(ids[1])).not.toBeNull();
+  });
+
+  it("allows one concurrent structure save and keeps newly created lessons in canonical order", async () => {
+    const lesson = await Lecture.create({ lectureTitle: "Organized" });
+    course.lectures = [lesson._id]; await course.save();
+    const req = { id: String(teacher._id), user: teacher, params: { courseId: String(course._id) }, body: { revision: course.__v, unassignedLectureIds: [], units: [{ title: "Unit", lectureIds: [String(lesson._id)] }] } };
+    const responses = [response(), response()];
+    await Promise.all(responses.map(res => updateCurriculum(req, res)));
+    expect(responses.map(res => res.status.mock.calls.at(-1)[0]).sort()).toEqual([200, 409]);
+    const added = response(); await createLecture({ ...req, body: { lectureTitle: "New unassigned" } }, added);
+    expect(added.status).toHaveBeenCalledWith(201);
+    const latest = await Course.findById(course._id).populate("lectures");
+    expect(latest.lectures.map(item => item.lectureTitle)).toEqual(["New unassigned", "Organized"]);
+    const denied = response(); await reorderLecture({ ...req, params: { ...req.params, lectureId: String(lesson._id) }, body: { direction: "up" } }, denied);
+    expect(denied.status).toHaveBeenCalledWith(409);
+  });
+
+  it("deletes a lesson from legacy documents without a units field", async () => {
+    const lecture = await Lecture.create({ lectureTitle: "Legacy" });
+    await Course.collection.updateOne({ _id: course._id }, { $set: { lectures: [lecture._id] }, $unset: { units: "" } });
+    const res = response(); await removeLecture({ params: { lectureId: String(lecture._id) } }, res);
+    expect(res.status).toHaveBeenCalledWith(200);
+    const latest = await Course.findById(course._id); expect(latest.lectures).toHaveLength(0); expect(latest.units).toHaveLength(0);
+  });
 
   it("keeps playback private, validates lesson ownership, and derives completion from saved quizzes", async () => {
     const lecture = await Lecture.create({ lectureTitle: "First lesson", quizQuestions: [{ questionText: "One plus one?", options: ["2", "3"], correctOptionIndex: 0 }] });

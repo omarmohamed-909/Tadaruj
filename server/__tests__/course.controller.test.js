@@ -620,6 +620,7 @@ describe("createLecture", () => {
         const fakeLecture = { _id: "l1", lectureTitle: "Intro" };
         const fakeCourse = {
             lectures: [],
+            increment: vi.fn(),
             save: vi.fn().mockResolvedValue(true),
         };
         const req = makeReq({
@@ -660,7 +661,7 @@ describe("removeLecture", () => {
 
         expect(Course.updateOne).toHaveBeenCalledWith(
             { lectures: "l1" },
-            { $pull: { lectures: "l1" } }
+            expect.arrayContaining([expect.objectContaining({ $set: expect.objectContaining({ units: expect.anything(), __v: expect.anything() }) })])
         );
         expect(res.status).toHaveBeenCalledWith(200);
     });
@@ -834,6 +835,7 @@ describe("reorderLecture", () => {
         const l2 = { toString: () => "l2" };
         const fakeCourse = {
             lectures: [l1, l2],
+            increment: vi.fn(),
             save: vi.fn().mockResolvedValue(true),
         };
         const req = makeReq({ params: { courseId: "c1", lectureId: "l1" }, body: { direction: "down" } });
