@@ -34,6 +34,8 @@ const SearchPage = lazy(() => import("./pages/student/SearchPage"));
 const Sidebar = lazy(() => import("./pages/admin/Sidebar"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const UsersManagement = lazy(() => import("./pages/admin/UsersManagement"));
+const StudentTracking = lazy(() => import("./pages/admin/StudentTracking"));
+const QuestionInbox = lazy(() => import("./pages/admin/QuestionInbox"));
 const QuizDashboard = lazy(() => import("./pages/admin/QuizDashboard"));
 const InstructorDashboard = lazy(() => import("./pages/admin/InstructorDashboard"));
 const AcceptAdminInvitation = lazy(() => import("./pages/admin/AcceptAdminInvitation"));
@@ -155,6 +157,8 @@ const appRouter = createBrowserRouter([
         path: "instructor",
         element: <InstructorRoute><Sidebar /></InstructorRoute>,
         children: [
+          { path: "students", element: <StudentTracking /> },
+          { path: "questions", element: <QuestionInbox /> },
           { path: "dashboard", element: <InstructorDashboard /> },
           { path: "orders", element: <ManualOrders /> },
           { path: "course", element: <CourseTable /> },
@@ -173,6 +177,8 @@ const appRouter = createBrowserRouter([
           </AdminRoute>
         ),
         children: [
+          { path: "students", element: <StudentTracking /> },
+          { path: "questions", element: <QuestionInbox /> },
           {
             path: "dashboard",
             element: <Dashboard />,

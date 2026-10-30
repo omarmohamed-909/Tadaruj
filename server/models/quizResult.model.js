@@ -5,6 +5,8 @@ const quizAttemptSchema = new mongoose.Schema(
     score: { type: Number, required: true },
     totalQuestions: { type: Number, required: true },
     percentage: { type: Number, required: true },
+    passPercentage: { type: Number },
+    passed: { type: Boolean },
     submittedAt: { type: Date, default: Date.now },
   },
   { _id: false }

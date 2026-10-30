@@ -12,6 +12,8 @@ const lectureSchema = new mongoose.Schema({
     description: {type: String, default: ""},
     attachmentUrl: {type: String, default: ""},
     attachmentPublicId: {type: String, default: ""},
+    quizMaxAttempts: { type: Number, default: 3, min: 1, max: 10 },
+    quizPassPercentage: { type: Number, default: 60, min: 0, max: 100 },
     quizQuestions: [
         {
             questionText: {

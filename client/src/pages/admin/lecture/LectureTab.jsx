@@ -1,3 +1,4 @@
+import QuizSettings from "./QuizSettings";
 import { useUiText, useFeedbackText } from "@/components/useUiText";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,7 +68,7 @@ const LectureTab = () => {
   const params = useParams();
   const { courseId, lectureId } = params;
 
-  const {data:lectureData} = useGetLectureByIdQuery(lectureId);
+  const {data:lectureData} = useGetLectureByIdQuery(lectureId, { refetchOnMountOrArgChange: true });
   const lecture = lectureData?.lecture;
 
   useEffect(()=>{
@@ -630,6 +631,7 @@ const LectureTab = () => {
                   <Plus className="mr-2 h-4 w-4" />{" "}{ui("Add question")}{" "}</Button>
               </div>
 
+              {lecture && <QuizSettings key={`${lectureId}:${lecture.quizMaxAttempts}:${lecture.quizPassPercentage}`} lecture={lecture} courseId={courseId} lectureId={lectureId} />}
               {quizQuestions.length === 0 ? (
                 <div className="mt-4 rounded-2xl border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground dark:border-border dark:bg-secondary/70 dark:text-muted-foreground">{" "}{ui("No quiz questions added yet.")}{" "}</div>
               ) : (

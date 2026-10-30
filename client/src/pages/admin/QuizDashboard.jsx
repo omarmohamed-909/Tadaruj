@@ -50,7 +50,7 @@ const QuizDashboard = () => {
   const creatorQuery = useGetCreatorCourseQuery(undefined, { skip: isAdmin });
   const adminQuery = useGetAdminManageableCoursesQuery(undefined, { skip: !isAdmin });
   const { data: coursesData, isLoading: coursesLoading } = isAdmin ? adminQuery : creatorQuery;
-  const { data: quizData, isLoading: quizLoading } = useGetCourseQuizResultsQuery(
+  const { data: quizData, isLoading: quizLoading, isError: quizError, refetch: refetchQuiz } = useGetCourseQuizResultsQuery(
     selectedCourseId,
     { skip: !selectedCourseId }
   );
@@ -77,8 +77,8 @@ const QuizDashboard = () => {
 
   const selectedCourse = courses.find((c) => c._id === selectedCourseId);
 
-  const getPerformanceGrade = (percent) => {
-    if (percent >= 80) {
+  const getPerformanceGrade = (percent, passMark) => {
+    if (percent >= Math.max(80, passMark)) {
       return {
         label: ui("Excellent"),
         color: "text-emerald-700 dark:text-emerald-400",
@@ -87,7 +87,7 @@ const QuizDashboard = () => {
       };
     }
 
-    if (percent >= 50) {
+    if (percent >= passMark) {
       return {
         label: ui("Good"),
         color: "text-amber-700 dark:text-amber-400",
@@ -269,7 +269,8 @@ const QuizDashboard = () => {
         </div>
       )}
 
-      {selectedCourseId && !quizLoading && (
+      {selectedCourseId && quizError && <div role="alert" className="rounded-xl border border-border bg-card p-5"><p>{language === "ar" ? "تعذّر تحميل نتائج الاختبارات." : "Could not load quiz results."}</p><button className="mt-3 text-primary underline" onClick={refetchQuiz}>{language === "ar" ? "حاول تاني" : "Try again"}</button></div>}
+      {selectedCourseId && !quizLoading && !quizError && (
         <>
           {/* Stat cards */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
@@ -306,7 +307,7 @@ const QuizDashboard = () => {
                     : ui("Results — {0}", lectures.find((l) => l._id === selectedLectureId)?.lectureTitle ?? "")}
                 </CardTitle>
                 <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground dark:bg-secondary dark:text-muted-foreground">
-                  {filteredResults.length} {filteredResults.length === 1 ? "entry" : "entries"}
+                  {filteredResults.length} {language === "ar" ? "نتيجة" : (filteredResults.length === 1 ? "entry" : "entries")}
                 </span>
               </div>
             </CardHeader>
@@ -324,7 +325,7 @@ const QuizDashboard = () => {
                   <div className="space-y-3 p-3 md:hidden">
                     {filteredResults.map((result) => {
                       const percent = result.percentage ?? 0;
-                      const grade = getPerformanceGrade(percent);
+                      const grade = getPerformanceGrade(percent, lectures.find(lecture => lecture._id === result.lectureId?._id)?.passPercentage ?? 60);
                       const attemptsCount =
                         result.attemptsCount || result.history?.length || 1;
                       const history = historyByResultId[result._id] || [];
@@ -435,7 +436,7 @@ const QuizDashboard = () => {
                     <TableBody>
                       {filteredResults.map((result) => {
                         const percent = result.percentage ?? 0;
-                        const grade = getPerformanceGrade(percent);
+                        const grade = getPerformanceGrade(percent, lectures.find(lecture => lecture._id === result.lectureId?._id)?.passPercentage ?? 60);
                         const submittedAt = formatSubmittedAt(result.updatedAt);
 
                         const attemptsCount =

@@ -40,6 +40,8 @@ const lectureCommentSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+    resolvedAt: { type: Date, default: null },
+    resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     text: {
       type: String,
       required: true,
@@ -49,5 +51,8 @@ const lectureCommentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+lectureCommentSchema.index({ courseId: 1, parentCommentId: 1, createdAt: -1 });
+lectureCommentSchema.index({ parentCommentId: 1, createdAt: -1 });
 
 export const LectureComment = mongoose.model("LectureComment", lectureCommentSchema);

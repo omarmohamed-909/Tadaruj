@@ -1,3 +1,4 @@
+import { getStudentTracking, getQuestionInbox, resolveQuestion, updateQuizSettings } from "../controllers/teaching.controller.js";
 import express from 'express';
 import isAuthenticated  from '../middlewares/isAuthenticated.js';
 import authorizeRoles from '../middlewares/authorizeRoles.js';
@@ -22,6 +23,10 @@ import {
 } from '../controllers/courseProgress.controller.js';
 
 const router = express.Router();
+router.get('/teaching/questions', isAuthenticated, authorizeRoles('instructor', 'admin'), getQuestionInbox);
+router.get('/teaching/:courseId/students', isAuthenticated, requireCourseManager, getStudentTracking);
+router.patch('/teaching/:courseId/questions/:commentId', isAuthenticated, requireCourseManager, resolveQuestion);
+router.patch('/teaching/:courseId/lecture/:lectureId/quiz-settings', isAuthenticated, requireCourseManager, updateQuizSettings);
 router.get('/my-learning', isAuthenticated, getMyLearning);
 router.put('/:courseId/lecture/:lectureId/position', isAuthenticated, saveLearningPosition);
 

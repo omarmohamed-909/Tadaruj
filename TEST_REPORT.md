@@ -1,6 +1,15 @@
 # سجل التحقق — تدرّج
 
 
+## Quizzes, student tracking and question inbox — 30 October 2026
+
+- Added manager-owned quiz settings (1–10 attempts, 0–100% pass mark), server-enforced attempt limits, immutable per-attempt pass-policy snapshots and student attempt history. Default lessons retain three attempts; pass mark defaults to 60% and remains separate from content completion. Existing instructor quiz performance bands now respect the configured threshold, and quiz-load failures provide retry instead of an empty-results state.
+- Added instructor/admin student tracking with server pagination, search/status filters, current lesson completion, latest-score averages, individual lesson/quiz details and last recorded playback/quiz activity. Explicit enrollments, completed purchases without mirrored enrollment, and active free-course learners are covered; unrelated accounts remain private. Needs-attention criteria and activity limits are documented in [TEACHING.md](TEACHING.md).
+- Added an owner-scoped student discussion inbox with course/text/status filters, at most three direct-reply previews, replies through the existing notification flow, explicit resolve/reopen, and links to full lesson discussions. Failed replies retain drafts. The lesson discussion shows the resolved state.
+- Local validation: **377 backend tests**, **165 frontend tests**, and **12 Chromium journeys passed**. Real isolated MongoDB checks cover permissions, pagination, escaped search, quiz-policy changes, preserved history, paid/free enrollment semantics, question resolution and private data boundaries. The teaching browser journey covers a failed then passed quiz, remaining attempts, student progress, teacher reply visible to the student, resolve/reopen and Arabic dark-mode mobile layout. Screenshots were reviewed; no production students, messages or payments were used.
+- Lint, build and startup-size checks pass. New pages remain lazy-loaded; existing deferred video-engine chunk warnings remain. This release does not add timed exams, question banks, certificates or private messaging.
+
+
 ## Course units and curriculum editor — 30 October 2026
 
 - Added bilingual instructor/admin tools for adding and renaming units, moving lessons between groups, reordering units and lessons, saving/discarding changes, and guarding navigation with an unsaved draft. Removing a unit preserves its lessons. Empty units remain hidden in student views.

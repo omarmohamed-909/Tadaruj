@@ -1,4 +1,4 @@
-import { ChartNoAxesColumn, ClipboardList, ScrollText, SquareLibrary, Users, ReceiptText } from "lucide-react";
+import { ChartNoAxesColumn, ClipboardList, ScrollText, SquareLibrary, Users, ReceiptText, MessageSquare } from "lucide-react";
 import React from "react";
 import { useSelector } from "react-redux";
 import { useLanguage } from "@/components/languageContext";
@@ -6,13 +6,15 @@ import { NavLink, Outlet } from "react-router-dom";
 
 const Sidebar = () => {
   const isAdmin = useSelector((state) => state.auth.user?.role === "admin");
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const adminMobileLinks = [
     { to: "dashboard", label: t("dashboard"), icon: ChartNoAxesColumn },
     { to: "course", label: t("courses"), icon: SquareLibrary },
     { to: "orders", label: t("orders"), icon: ReceiptText },
     ...(isAdmin ? [{ to: "users", label: t("users"), icon: Users }] : []),
     ...(isAdmin ? [{ to: "audit-logs", label: t("activity"), icon: ScrollText }] : []),
+    { to: "students", label: language === "ar" ? "متابعة الطلاب" : "Student progress", icon: Users },
+    { to: "questions", label: language === "ar" ? "أسئلة الطلاب" : "Questions", icon: MessageSquare },
     { to: "quiz-dashboard", label: t("quiz"), icon: ClipboardList },
   ];
 
@@ -25,8 +27,8 @@ const Sidebar = () => {
 
   return (
     <div className="flex min-h-screen w-full overflow-x-hidden bg-background text-foreground">
-      <div className="hidden lg:block w-[250px] xl:w-[300px] shrink-0 space-y-8 border-e border-border bg-card p-5 sticky top-16 h-[calc(100vh-4rem)]">
-        <div className="space-y-4">
+      <div className="hidden lg:block w-[250px] xl:w-[300px] shrink-0 space-y-8 border-e border-border bg-card p-5 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+        <div className="space-y-2">
           <NavLink to="dashboard" className={linkClassName}>
             <ChartNoAxesColumn size={22} />
             <h1>{t("dashboard")}</h1>
@@ -47,6 +49,8 @@ const Sidebar = () => {
             <ScrollText size={22} />
             <h1>{t("activity")}</h1>
           </NavLink>}
+          <NavLink to="students" className={linkClassName}><Users size={22}/><span>{language === "ar" ? "متابعة الطلاب" : "Student progress"}</span></NavLink>
+          <NavLink to="questions" className={linkClassName}><MessageSquare size={22}/><span>{language === "ar" ? "أسئلة الطلاب" : "Questions"}</span></NavLink>
           <NavLink to="quiz-dashboard" className={linkClassName}>
             <ClipboardList size={22} />
             <h1>{t("quiz")}</h1>

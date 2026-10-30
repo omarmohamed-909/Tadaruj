@@ -1,3 +1,4 @@
+import QuizAttemptSummary from "@/components/QuizAttemptSummary";
 import CurriculumList from "@/components/CurriculumList";
 import { useUiText, useFeedbackText } from "@/components/useUiText";
 import { useLanguage } from "@/components/languageContext";
@@ -174,6 +175,8 @@ const CourseProgress = () => {
   );
   const lectureQuizQuestions = activeLecture?.quizQuestions ?? [];
   const totalQuizQuestions = lectureQuizQuestions.length;
+  const maxQuizAttempts = activeLecture?.quizMaxAttempts ?? 3;
+  const quizPassPercentage = activeLecture?.quizPassPercentage ?? 60;
   const savedQuiz = data.data.quizResults?.find(result => result.lectureId === activeLecture?._id);
   const answeredQuizQuestionsCount = Object.keys(quizAnswers).length;
 
@@ -403,6 +406,7 @@ const CourseProgress = () => {
                   >
                     {commenterName}
                   </p>
+                  {comment.resolvedAt && !comment.parentCommentId && <Badge variant="outline">{language === "ar" ? "تم الحل" : "Resolved"}</Badge>}
                   {comment.isPinned && !comment.parentCommentId && (
                     <Badge className="h-5 rounded-full bg-amber-100 px-2 text-[10px] font-bold uppercase tracking-wide text-amber-700 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-300">{" "}{ui("Pinned")}{" "}</Badge>
                   )}
@@ -525,7 +529,7 @@ const CourseProgress = () => {
   };
 
   const submitQuiz = async () => {
-    if (!totalQuizQuestions) {
+    if (!totalQuizQuestions || isSubmittingQuizResult || savedQuiz?.attemptsCount >= maxQuizAttempts) {
       return;
     }
 
@@ -742,6 +746,7 @@ const CourseProgress = () => {
                               >
                                 <input
                                   type="radio"
+                                  disabled={isSubmittingQuizResult || savedQuiz?.attemptsCount >= maxQuizAttempts}
                                   name={`quiz-question-${questionIndex}`}
                                   checked={isSelected}
                                   onChange={() => updateQuizAnswer(questionIndex, optionIndex)}
@@ -763,19 +768,17 @@ const CourseProgress = () => {
                         type="button"
                         onClick={submitQuiz}
                         className="rounded-2xl"
-                        disabled={isSubmittingQuizResult || savedQuiz?.attemptsCount >= 3}
+                        disabled={isSubmittingQuizResult || savedQuiz?.attemptsCount >= maxQuizAttempts}
                       >
-                        {isSubmittingQuizResult ? "Submitting..." : ui("Check Answers")}
+                        {isSubmittingQuizResult ? (language === "ar" ? "جارٍ التسليم…" : "Submitting…") : ui("Check Answers")}
                       </Button>
                     </div>
 
                     {showQuizResult && (
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-950/30 dark:text-emerald-300">{" "}{ui("Your score:")}{" "}{quizResultScore} / {totalQuizQuestions}
+                      <div className="rounded-2xl border border-border bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground">{" "}{ui("Your score:")}{" "}{quizResultScore} / {totalQuizQuestions}
                       </div>
                     )}
-                    {savedQuiz && <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-                      {language === "ar" ? `أفضل نتيجة: ${savedQuiz.bestPercentage}% · المحاولات المتبقية: ${Math.max(0, 3 - savedQuiz.attemptsCount)}` : `Best score: ${savedQuiz.bestPercentage}% · Remaining attempts: ${Math.max(0, 3 - savedQuiz.attemptsCount)}`}
-                    </p>}
+                    <QuizAttemptSummary result={savedQuiz} maxAttempts={maxQuizAttempts} passPercentage={quizPassPercentage} />
                   </div>
                 )}
               </div>

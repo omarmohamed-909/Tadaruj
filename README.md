@@ -34,12 +34,14 @@ This repository contains both the frontend and backend, with separate developmen
 | Area | Capabilities |
 | --- | --- |
 | Discovery | Instructor cards, public profiles, and courses searchable by subject, stage, and price |
-| Learning | Personal learning dashboard, cross-device video resume, playback speed, unit-based lesson navigation, attachments, quizzes, comments, and server-derived progress |
+| Learning | Personal learning dashboard, cross-device video resume, playback speed, unit-based lesson navigation, attachments, quiz attempt history, comments, and server-derived progress |
 | Accounts | Email and password registration, Google sign-in, email verification, and password recovery |
-| Content management | Course units, lesson organization, quizzes, and enrollment requests |
+| Content management | Course units, lesson organization, configurable quiz attempts/pass marks, student tracking, question inbox, and enrollment requests |
 | Platform management | Administration for accounts, content, and orders, with admin invitations and an audit log |
 | Interface | Arabic and English, RTL/LTR layouts, light and dark themes, and responsive pages |
 | Integrations | Resend for email, Cloudinary for media, and WhatsApp for enrollment communication |
+
+See [Teaching tools](TEACHING.md) for quiz policies, student progress filters, and the question inbox.
 
 ### Roles and permissions
 

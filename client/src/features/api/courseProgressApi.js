@@ -13,7 +13,7 @@ const getStoredToken = () => {
 };
 export const courseProgressApi = createApi({
   reducerPath: "courseProgressApi",
-  tagTypes: ["LectureComments", "CommentNotifications", "Learning", "CourseContent"],
+  tagTypes: ["LectureComments", "CommentNotifications", "Learning", "CourseContent", "Teaching"],
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_PURCHASE_API,
     credentials: "include",
@@ -28,6 +28,22 @@ export const courseProgressApi = createApi({
     },
   }),
   endpoints: (builder) => ({
+    getStudentTracking: builder.query({
+      query: ({ courseId, ...params }) => ({ url: `/teaching/${courseId}/students`, params }),
+      providesTags: ["Teaching"],
+    }),
+    getQuestionInbox: builder.query({
+      query: params => ({ url: "/teaching/questions", params }),
+      providesTags: ["Teaching"],
+    }),
+    resolveQuestion: builder.mutation({
+      query: ({ courseId, commentId, resolved }) => ({ url: `/teaching/${courseId}/questions/${commentId}`, method: "PATCH", body: { resolved } }),
+      invalidatesTags: (result, error) => error ? [] : ["Teaching", "LectureComments"],
+    }),
+    updateQuizSettings: builder.mutation({
+      query: ({ courseId, lectureId, ...body }) => ({ url: `/teaching/${courseId}/lecture/${lectureId}/quiz-settings`, method: "PATCH", body }),
+      invalidatesTags: (result, error) => error ? [] : ["Teaching", "CourseContent"],
+    }),
     getMyLearning: builder.query({
       query: ({ page = 1, status = "all" } = {}) => ({ url: "/my-learning", params: { page, status } }),
       providesTags: ["Learning"],
@@ -95,7 +111,7 @@ export const courseProgressApi = createApi({
       }),
       invalidatesTags: (result, error, { lectureId }) => [
         { type: "LectureComments", id: lectureId },
-        "CommentNotifications",
+        "CommentNotifications", "Teaching",
       ],
     }),
     deleteLectureComment: builder.mutation({
@@ -105,7 +121,7 @@ export const courseProgressApi = createApi({
       }),
       invalidatesTags: (result, error, { lectureId }) => [
         { type: "LectureComments", id: lectureId },
-        "CommentNotifications",
+        "CommentNotifications", "Teaching",
       ],
     }),
     togglePinLectureComment: builder.mutation({
@@ -198,6 +214,7 @@ export const courseProgressApi = createApi({
   }),
 });
 export const {
+  useGetStudentTrackingQuery, useGetQuestionInboxQuery, useResolveQuestionMutation, useUpdateQuizSettingsMutation,
 useGetMyLearningQuery,
 useSaveLearningPositionMutation,
 useGetCourseProgressQuery,

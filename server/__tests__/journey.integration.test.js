@@ -1,3 +1,7 @@
+import { getStudentTracking, getQuestionInbox, resolveQuestion, updateQuizSettings } from "../controllers/teaching.controller.js";
+import { LectureComment } from "../models/lectureComment.model.js";
+import { QuizResult } from "../models/quizResult.model.js";
+import { CourseProgress } from "../models/courseProgress.js";
 import { updateCurriculum } from "../controllers/curriculum.controller.js";
 import { removeLecture, createLecture, reorderLecture } from "../controllers/course.controller.js";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -9,7 +13,7 @@ import { Notification } from "../models/notification.model.js";
 import { AuditLog } from "../models/auditLog.model.js";
 import { register, login, verifyEmail } from "../controllers/user.controller.js";
 import { requestManualOrder, reviewManualOrder } from "../controllers/manualOrder.controller.js";
-import { getCourseProgress, updateCourseProgress, markAsCompleted, submitQuizResult, saveLearningPosition, getMyLearning } from "../controllers/courseProgress.controller.js";
+import { getCourseProgress, updateCourseProgress, markAsCompleted, submitQuizResult, saveLearningPosition, getMyLearning, getCourseQuizResults } from "../controllers/courseProgress.controller.js";
 import { LearningPosition } from "../models/learningPosition.model.js";
 import { editCourse, togglePublishCourse } from "../controllers/course.controller.js";
 import { Lecture } from "../models/lecture.model.js";
@@ -60,6 +64,77 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     await getCourseProgress({ id: String(student._id), user: student, params: { courseId: String(course._id) } }, res);
     return res;
   };
+
+  it("enforces configured quiz limits and preserves each attempt's pass policy", async () => {
+    const lecture = await Lecture.create({ lectureTitle: "Quiz", quizQuestions: [{ questionText: "2 + 2?", options: ["4", "5"], correctOptionIndex: 0 }] });
+    course.lectures = [lecture._id]; await course.save(); student.enrolledCourses = [course._id]; await student.save();
+    const req = { id: String(teacher._id), user: teacher, params: { courseId: String(course._id), lectureId: String(lecture._id) }, body: { quizMaxAttempts: 1, quizPassPercentage: 80 } };
+    const forbidden = response(); await updateQuizSettings({ ...req, id: String(student._id), user: student }, forbidden); expect(forbidden.status).toHaveBeenCalledWith(403);
+    const invalid = response(); await updateQuizSettings({ ...req, body: { quizMaxAttempts: 0, quizPassPercentage: 101 } }, invalid); expect(invalid.status).toHaveBeenCalledWith(400);
+    const settings = response(); await updateQuizSettings(req, settings); expect(payload(settings).quizMaxAttempts).toBe(1);
+    const attempt = { ...req, id: String(student._id), user: student, body: { answers: [1] } };
+    const first = response(); await submitQuizResult(attempt, first); expect(payload(first)).toMatchObject({ remainingAttempts: 0, maxAttempts: 1, passed: false });
+    const limited = response(); await submitQuizResult(attempt, limited); expect(limited.status).toHaveBeenCalledWith(429);
+    await updateQuizSettings({ ...req, body: { quizMaxAttempts: 2, quizPassPercentage: 50 } }, response());
+    const retry = response(); await submitQuizResult({ ...attempt, body: { answers: [0] } }, retry); expect(payload(retry)).toMatchObject({ attemptsCount: 2, passed: true, remainingAttempts: 0 });
+    const result = await QuizResult.findOne({ userId: student._id, lectureId: lecture._id });
+    expect(result.history.map(item => [item.passPercentage, item.passed])).toEqual([[80, false], [50, true]]);
+    const dashboard = response(); await getCourseQuizResults(req, dashboard); expect(payload(dashboard).lectures[0].passPercentage).toBe(50);
+    const visible = await access(); expect(payload(visible).data.quizResults[0].history).toHaveLength(2);
+    expect(JSON.stringify(payload(visible))).not.toContain("correctOptionIndex");
+  });
+
+  it("paginates real enrolled students and computes current lesson and quiz progress privately", async () => {
+    const lecture = await Lecture.create({ lectureTitle: "Quiz lesson", quizPassPercentage: 70, quizQuestions: [{ questionText: "Q", options: ["A", "B"], correctOptionIndex: 0 }] });
+    course.lectures = [lecture._id]; await course.save(); student.enrolledCourses = [course._id]; await student.save();
+    await User.insertMany(Array.from({ length: 13 }, (_, index) => ({ name: `Member ${index}`, email: `member-${course._id}-${index}@example.test`, password: "test-only", role: "student", enrolledCourses: [course._id] })));
+    await CourseProgress.create({ userId: String(student._id), courseId: String(course._id), lectureProgress: [{ lectureId: String(lecture._id), viewed: true }, { lectureId: String(lecture._id), viewed: true }] });
+    await QuizResult.create({ userId: student._id, courseId: course._id, lectureId: lecture._id, score: 0, totalQuestions: 1, percentage: 0, bestPercentage: 0, attemptsCount: 1 });
+    const req = { id: String(teacher._id), user: teacher, params: { courseId: String(course._id) }, query: {} };
+    const page = response(); await getStudentTracking(req, page); expect(payload(page).total).toBe(14); expect(payload(page).rows).toHaveLength(12);
+    const end = response(); await getStudentTracking({ ...req, query: { page: "99" } }, end); expect(payload(end)).toMatchObject({ page: 2, totalPages: 2 }); expect(payload(end).rows).toHaveLength(2);
+    const attention = response(); await getStudentTracking({ ...req, query: { status: "needs-attention" } }, attention); expect(payload(attention).rows).toHaveLength(1); expect(payload(attention).rows[0]).toMatchObject({ completedLessons: 1, averageScore: 0, needsAttention: true, status: "completed" });
+    const literal = response(); await getStudentTracking({ ...req, query: { q: ".*" } }, literal); expect(payload(literal).rows).toHaveLength(0);
+    const privateData = JSON.stringify(payload(page)); expect(privateData).not.toContain("password"); expect(privateData).not.toContain("correctOptionIndex");
+    const denied = response(); await getStudentTracking({ ...req, id: String(student._id) }, denied); expect(denied.status).toHaveBeenCalledWith(403);
+    const invalid = response(); await getStudentTracking({ ...req, query: { page: "-1" } }, invalid); expect(invalid.status).toHaveBeenCalledWith(400);
+  });
+
+  it("tracks a course with no quizzes without treating unrelated students as enrolled", async () => {
+    student.enrolledCourses = [course._id]; await student.save();
+    const res = response(); await getStudentTracking({ id: String(teacher._id), user: teacher, params: { courseId: String(course._id) }, query: {} }, res);
+    expect(payload(res).total).toBe(1); expect(payload(res).rows[0]).toMatchObject({ status: "not-started", completedLessons: 0, averageScore: null });
+  });
+
+  it("includes completed purchases without a mirrored enrollment and free-course learners with activity", async () => {
+    await CoursePurchase.create({ userId: student._id, courseId: course._id, amount: 250, paymentId: "test-only-purchase", status: "completed" });
+    const req = { id: String(teacher._id), user: teacher, params: { courseId: String(course._id) }, query: {} };
+    const paid = response(); await getStudentTracking(req, paid); expect(payload(paid).total).toBe(1);
+    const free = await Course.create({ courseTitle: "Free", creator: teacher._id, coursePrice: 0 });
+    await CourseProgress.create({ userId: String(student._id), courseId: String(free._id), lectureProgress: [] });
+    const active = response(); await getStudentTracking({ ...req, params: { courseId: String(free._id) } }, active); expect(payload(active).total).toBe(1);
+    const admin = response(); await getStudentTracking({ ...req, id: String(student._id), user: { role: "admin" } }, admin); expect(payload(admin).total).toBe(1);
+  });
+
+  it("scopes the question inbox to owned courses and supports replies, resolution and reopening", async () => {
+    const lecture = await Lecture.create({ lectureTitle: "Questions" }); course.lectures = [lecture._id]; await course.save();
+    const other = await Course.create({ courseTitle: "Private other course", creator: student._id, lectures: [lecture._id] });
+    const question = await LectureComment.create({ courseId: course._id, lectureId: lecture._id, userId: student._id, text: "Why does this work?" });
+    await LectureComment.create({ courseId: other._id, lectureId: lecture._id, userId: student._id, text: "Private question" });
+    await LectureComment.create({ courseId: course._id, lectureId: lecture._id, userId: teacher._id, text: "Announcement" });
+    const reply = await LectureComment.create({ courseId: course._id, lectureId: lecture._id, userId: teacher._id, parentCommentId: question._id, text: "Here is the explanation." });
+    const req = { id: String(teacher._id), user: teacher, query: { status: "open" }, params: { courseId: String(course._id), commentId: String(question._id) }, body: { resolved: true } };
+    const inbox = response(); await getQuestionInbox(req, inbox); expect(payload(inbox).total).toBe(1); expect(payload(inbox).rows[0].replies[0].text).toBe("Here is the explanation."); expect(JSON.stringify(payload(inbox))).not.toContain("Private question");
+    const denied = response(); await resolveQuestion({ ...req, id: String(student._id), user: student }, denied); expect(denied.status).toHaveBeenCalledWith(403);
+    const nested = response(); await resolveQuestion({ ...req, params: { ...req.params, commentId: String(reply._id) } }, nested); expect(nested.status).toHaveBeenCalledWith(404);
+    const resolved = response(); await resolveQuestion(req, resolved); expect(payload(resolved).question.resolvedAt).toBeTruthy();
+    const empty = response(); await getQuestionInbox(req, empty); expect(payload(empty).total).toBe(0);
+    await resolveQuestion({ ...req, body: { resolved: false } }, response());
+    const open = response(); await getQuestionInbox(req, open); expect(payload(open).total).toBe(1);
+    const literal = response(); await getQuestionInbox({ ...req, query: { q: ".*" } }, literal); expect(payload(literal).total).toBe(0);
+    await LectureComment.insertMany(Array.from({ length: 12 }, (_, index) => ({ courseId: course._id, lectureId: lecture._id, userId: student._id, text: `New question ${index}` })));
+    const lastPage = response(); await getQuestionInbox({ ...req, query: { page: "2" } }, lastPage); expect(payload(lastPage)).toMatchObject({ page: 2, total: 13 }); expect(payload(lastPage).rows).toHaveLength(1); expect(String(payload(lastPage).rows[0]._id)).toBe(String(question._id));
+  });
 
   it("saves units atomically, rejects stale or unauthorized edits, and safely removes references", async () => {
     const lessons = await Lecture.create([{ lectureTitle: "Intro" }, { lectureTitle: "Motion" }]);

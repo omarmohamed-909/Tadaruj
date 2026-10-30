@@ -34,4 +34,5 @@ coursePurchaseSchema.index({ courseId:1, userId:1, paymentMethod:1, status:1 }, 
 });
 coursePurchaseSchema.index({ paymentMethod: 1, status: 1, createdAt: -1 });
 coursePurchaseSchema.index({ instructorId: 1, paymentMethod: 1, status: 1, createdAt: -1 });
+coursePurchaseSchema.index({ courseId: 1, status: 1, userId: 1 });
 export const CoursePurchase = mongoose.model("CoursePurchase",coursePurchaseSchema);

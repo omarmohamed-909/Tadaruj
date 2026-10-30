@@ -12,7 +12,6 @@ import { LearningPosition } from "../models/learningPosition.model.js";
 import { learningSummary } from "../utils/learningSummary.js";
 import { getProtectedMediaUrl } from "../utils/cloudinary.js";
 
-const MAX_QUIZ_ATTEMPTS = 3;
 
 const ensureCourseAccess = async (courseId, userId, role) => {
   const [course, user, purchase] = await Promise.all([
@@ -301,7 +300,7 @@ export const getCourseProgress = async (req, res) => {
     }
 
     const [quizResults, positions] = await Promise.all([
-      QuizResult.find({ userId, courseId }).select("lectureId attemptsCount bestPercentage percentage").lean(),
+      QuizResult.find({ userId, courseId }).select("lectureId attemptsCount bestPercentage percentage history score totalQuestions updatedAt").lean(),
       LearningPosition.find({ userId, courseId }).select("lectureId position duration updatedAt").sort({ updatedAt: -1 }).lean(),
     ]);
     const summary = learningSummary(safeCourseDetails.lectures, courseProgress?.lectureProgress, quizResults);
@@ -486,10 +485,10 @@ export const addLectureComment = async (req, res) => {
   try {
     const { courseId, lectureId } = req.params;
     const userId = req.id;
-    const text = req.body?.text?.trim();
+    const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
     const parentCommentId = req.body?.parentCommentId;
 
-    if (!text) {
+    if (typeof text !== "string" || !text || text.length > 1000) {
       return res.status(400).json({
         message: "Comment text is required.",
       });
@@ -731,7 +730,9 @@ export const submitQuizResult = async (req, res) => {
       return res.status(404).json({ message: "Lecture not found in this course." });
     }
 
-    const lecture = await Lecture.findById(lectureId).select("quizQuestions");
+    const lecture = await Lecture.findById(lectureId).select("quizQuestions quizMaxAttempts quizPassPercentage");
+    const maxAttempts = lecture?.quizMaxAttempts ?? 3;
+    const passPercentage = lecture?.quizPassPercentage ?? 60;
     const questions = lecture?.quizQuestions || [];
     if (!questions.length || !Array.isArray(answers) || answers.length !== questions.length ||
       answers.some((answer, index) => !Number.isInteger(answer) || answer < 0 || answer >= questions[index].options.length)) {
@@ -746,6 +747,8 @@ export const submitQuizResult = async (req, res) => {
       score,
       totalQuestions,
       percentage,
+      passPercentage,
+      passed: percentage >= passPercentage,
       submittedAt: new Date(),
     };
 
@@ -772,26 +775,27 @@ export const submitQuizResult = async (req, res) => {
 
       return res.status(200).json({
         message: "Quiz result saved.",
+        percentage, passPercentage, passed: percentage >= passPercentage,
         attemptsCount: 1,
-        maxAttempts: MAX_QUIZ_ATTEMPTS,
-        remainingAttempts: MAX_QUIZ_ATTEMPTS - 1,
+        maxAttempts: maxAttempts,
+        remainingAttempts: maxAttempts - 1,
         score,
         totalQuestions,
       });
     } else {
       const currentAttempts = existingResult.attemptsCount || 0;
 
-      if (currentAttempts >= MAX_QUIZ_ATTEMPTS) {
+      if (currentAttempts >= maxAttempts) {
         return res.status(429).json({
-          message: `Maximum ${MAX_QUIZ_ATTEMPTS} quiz attempts reached for this lecture.`,
+          message: `Maximum ${maxAttempts} quiz attempts reached for this lecture.`,
           attemptsCount: currentAttempts,
-          maxAttempts: MAX_QUIZ_ATTEMPTS,
+          maxAttempts: maxAttempts,
           remainingAttempts: 0,
         });
       }
 
       const updatedResult = await QuizResult.findOneAndUpdate(
-        { _id: existingResult._id, attemptsCount: { $lt: MAX_QUIZ_ATTEMPTS } },
+        { _id: existingResult._id, attemptsCount: { $lt: maxAttempts } },
         {
           $set: {
             score,
@@ -810,12 +814,13 @@ export const submitQuizResult = async (req, res) => {
         { new: true }
       );
       if (!updatedResult) return res.status(429).json({ message: "Maximum quiz attempts reached." });
-      const remainingAttempts = Math.max(0, MAX_QUIZ_ATTEMPTS - updatedResult.attemptsCount);
+      const remainingAttempts = Math.max(0, maxAttempts - updatedResult.attemptsCount);
 
       return res.status(200).json({
         message: "Quiz result saved.",
+        percentage, passPercentage, passed: percentage >= passPercentage,
         attemptsCount: updatedResult.attemptsCount,
-        maxAttempts: MAX_QUIZ_ATTEMPTS,
+        maxAttempts: maxAttempts,
         remainingAttempts,
         score,
         totalQuestions,
@@ -834,7 +839,7 @@ export const getCourseQuizResults = async (req, res) => {
     const { courseId } = req.params;
     const userId = req.id;
 
-    const course = await Course.findById(courseId).populate("lectures", "lectureTitle quizQuestions");
+    const course = await Course.findById(courseId).populate("lectures", "lectureTitle quizQuestions quizPassPercentage");
     if (!course) {
       return res.status(404).json({ message: "Course not found." });
     }
@@ -856,6 +861,7 @@ export const getCourseQuizResults = async (req, res) => {
         _id: lecture._id,
         lectureTitle: lecture.lectureTitle,
         totalQuestions: lecture.quizQuestions?.length ?? 0,
+        passPercentage: lecture.quizPassPercentage ?? 60,
       })),
       results,
     });
