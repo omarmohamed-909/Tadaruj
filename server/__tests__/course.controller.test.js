@@ -1,3 +1,5 @@
+import { Assignment, AssignmentSubmission } from "../models/assignment.model.js";
+vi.mock("../models/assignment.model.js", () => ({ Assignment: { deleteMany: vi.fn().mockResolvedValue({}) }, AssignmentSubmission: { deleteMany: vi.fn().mockResolvedValue({}) } }));
 import { vi, describe, it, expect, beforeEach } from "vitest";
 vi.mock("../utils/directUploads.js", () => ({ verifyDirectUpload: vi.fn() }));
 import { verifyDirectUpload } from "../utils/directUploads.js";
@@ -460,7 +462,10 @@ describe("deleteCourse", () => {
         expect(CoursePurchase.deleteMany).toHaveBeenCalledWith({ courseId });
         expect(CourseProgress.deleteMany).toHaveBeenCalledWith({ courseId });
 
-        const notificationDeleteFilter = Notification.deleteMany.mock.calls[0][0];
+        expect(Assignment.deleteMany).toHaveBeenCalledWith({ courseId });
+        expect(AssignmentSubmission.deleteMany).toHaveBeenCalledWith({ courseId });
+        expect(Notification.deleteMany.mock.calls[0][0].link.$regex.test(`/course-assignments/${courseId}/abc`)).toBe(true);
+        const notificationDeleteFilter = Notification.deleteMany.mock.calls[1][0];
         expect(notificationDeleteFilter.link.$regex.test(`/course-progress/${courseId}?lectureId=lecture_1`)).toBe(true);
 
         expect(User.updateMany).toHaveBeenCalledWith(

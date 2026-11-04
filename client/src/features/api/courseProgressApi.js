@@ -13,7 +13,7 @@ const getStoredToken = () => {
 };
 export const courseProgressApi = createApi({
   reducerPath: "courseProgressApi",
-  tagTypes: ["LectureComments", "CommentNotifications", "Learning", "CourseContent", "Teaching"],
+  tagTypes: ["LectureComments", "CommentNotifications", "Learning", "CourseContent", "Teaching", "Assignments"],
   baseQuery: fetchBaseQuery({
     baseUrl: COURSE_PURCHASE_API,
     credentials: "include",

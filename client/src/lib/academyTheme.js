@@ -8,6 +8,8 @@ const themedRoutes = [
   "/course-detail",
   "/course-progress",
   "/my-learning",
+  "/course-assignments",
+  "/admin/assignments",
   "/forgot-password",
   "/reset-password",
   "/verify-email",

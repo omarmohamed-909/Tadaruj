@@ -15,7 +15,7 @@ describe("AcademyTheme", () => {
 
   it("keeps the palette throughout the course journey and removes it on exit", () => {
     const { rerender } = render(<AcademyTheme enabled={usesAcademyTheme("/courses")} />);
-    for (const route of ["/course/search", "/course-detail/course-id", "/course-progress/course-id", "/my-learning"]) {
+    for (const route of ["/course/search", "/course-detail/course-id", "/course-progress/course-id", "/my-learning", "/course-assignments/course-id", "/course-assignments/course-id/task-id", "/admin/assignments"]) {
       rerender(<AcademyTheme enabled={usesAcademyTheme(route)} />);
       expect(document.documentElement).toHaveAttribute("data-academy-theme");
     }

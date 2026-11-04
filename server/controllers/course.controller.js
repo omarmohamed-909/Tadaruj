@@ -1,3 +1,4 @@
+import { Assignment, AssignmentSubmission } from "../models/assignment.model.js";
 import { reportError } from "../utils/logger.js";
 import { canonicalLectureOrder } from "../utils/curriculum.js";
 import { LearningPosition } from "../models/learningPosition.model.js";
@@ -374,6 +375,9 @@ export const deleteCourse = async (req, res) => {
             CoursePurchase.deleteMany({ courseId }),
             CourseProgress.deleteMany({ courseId }),
             LearningPosition.deleteMany({ courseId }),
+            Assignment.deleteMany({ courseId }),
+            AssignmentSubmission.deleteMany({ courseId }),
+            Notification.deleteMany({ link: { $regex: new RegExp(`^/course-assignments/${courseId}(?:/|\\?|$)`) } }),
             Notification.deleteMany({
                 link: { $regex: courseNotificationLinkPattern },
             }),

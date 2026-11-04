@@ -1,3 +1,4 @@
+import { listAssignments, createAssignment, getAssignment, updateAssignment, submitAssignment, listSubmissions, getSubmission, reviewSubmission } from "../controllers/assignment.controller.js";
 import { getStudentTracking, getQuestionInbox, resolveQuestion, updateQuizSettings } from "../controllers/teaching.controller.js";
 import express from 'express';
 import isAuthenticated  from '../middlewares/isAuthenticated.js';
@@ -23,6 +24,17 @@ import {
 } from '../controllers/courseProgress.controller.js';
 
 const router = express.Router();
+const assignmentManager = (req, _res, next) => { req.assignmentManagement = true; next(); };
+router.get('/assignments/manager/:courseId', isAuthenticated, requireCourseManager, assignmentManager, listAssignments);
+router.post('/assignments/manager/:courseId', isAuthenticated, requireCourseManager, createAssignment);
+router.patch('/assignments/manager/:courseId/:assignmentId', isAuthenticated, requireCourseManager, updateAssignment);
+router.get('/assignments/manager/:courseId/:assignmentId/submissions', isAuthenticated, requireCourseManager, listSubmissions);
+router.get('/assignments/manager/:courseId/:assignmentId/submissions/:submissionId', isAuthenticated, requireCourseManager, getSubmission);
+router.patch('/assignments/manager/:courseId/:assignmentId/submissions/:submissionId', isAuthenticated, requireCourseManager, reviewSubmission);
+router.get('/assignments/:courseId', isAuthenticated, listAssignments);
+router.get('/assignments/:courseId/:assignmentId', isAuthenticated, getAssignment);
+router.post('/assignments/:courseId/:assignmentId/submit', isAuthenticated, submitAssignment);
+
 router.get('/teaching/questions', isAuthenticated, authorizeRoles('instructor', 'admin'), getQuestionInbox);
 router.get('/teaching/:courseId/students', isAuthenticated, requireCourseManager, getStudentTracking);
 router.patch('/teaching/:courseId/questions/:commentId', isAuthenticated, requireCourseManager, resolveQuestion);

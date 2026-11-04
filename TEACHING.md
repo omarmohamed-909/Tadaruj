@@ -1,5 +1,7 @@
 # Teaching tools
 
+Course-level written work and teacher grading are documented in [Assignments](ASSIGNMENTS.md).
+
 ## Quiz settings and student results
 
 The lesson editor includes a separate quiz settings panel. The owning instructor or an administrator can set 1–10 attempts and a pass mark from 0–100%. Existing lessons default to three attempts and a 60% pass mark. Saving settings does not reset attempt counts or remove questions; raising the limit allows the remaining attempts, while lowering it can prevent another attempt.

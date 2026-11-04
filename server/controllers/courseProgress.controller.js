@@ -143,7 +143,7 @@ const getNestedCommentIds = async ({ courseId, lectureId, rootCommentId }) => {
   return nestedIds;
 };
 
-const commentNotificationTypes = ["comment", "comment-reply", "manual-order-approved", "manual-order-rejected"];
+const commentNotificationTypes = ["assignment-review", "comment", "comment-reply", "manual-order-approved", "manual-order-rejected"];
 
 const createCommentNotification = async ({
   recipientUserId,

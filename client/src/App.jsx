@@ -34,6 +34,8 @@ const SearchPage = lazy(() => import("./pages/student/SearchPage"));
 const Sidebar = lazy(() => import("./pages/admin/Sidebar"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const UsersManagement = lazy(() => import("./pages/admin/UsersManagement"));
+const AssignmentList = lazy(() => import("./pages/assignments/AssignmentList"));
+const AssignmentDetail = lazy(() => import("./pages/assignments/AssignmentDetail"));
 const StudentTracking = lazy(() => import("./pages/admin/StudentTracking"));
 const QuestionInbox = lazy(() => import("./pages/admin/QuestionInbox"));
 const QuizDashboard = lazy(() => import("./pages/admin/QuizDashboard"));
@@ -152,11 +154,15 @@ const appRouter = createBrowserRouter([
         ),
       },
 
+      { path: "course-assignments/:courseId", element: <ProtectedRoute><AssignmentList /></ProtectedRoute> },
+      { path: "course-assignments/:courseId/:assignmentId", element: <ProtectedRoute><AssignmentDetail /></ProtectedRoute> },
       //admin routes start from here
       {
         path: "instructor",
         element: <InstructorRoute><Sidebar /></InstructorRoute>,
         children: [
+          { path: "assignments", element: <AssignmentList manager /> },
+          { path: "assignments/:courseId/:assignmentId", element: <AssignmentDetail manager /> },
           { path: "students", element: <StudentTracking /> },
           { path: "questions", element: <QuestionInbox /> },
           { path: "dashboard", element: <InstructorDashboard /> },
@@ -177,6 +183,8 @@ const appRouter = createBrowserRouter([
           </AdminRoute>
         ),
         children: [
+          { path: "assignments", element: <AssignmentList manager /> },
+          { path: "assignments/:courseId/:assignmentId", element: <AssignmentDetail manager /> },
           { path: "students", element: <StudentTracking /> },
           { path: "questions", element: <QuestionInbox /> },
           {

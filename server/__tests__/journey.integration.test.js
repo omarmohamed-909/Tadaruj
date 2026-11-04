@@ -1,3 +1,5 @@
+import { Assignment, AssignmentSubmission } from "../models/assignment.model.js";
+import { createAssignment, getAssignment, listAssignments, updateAssignment, submitAssignment, listSubmissions, getSubmission, reviewSubmission } from "../controllers/assignment.controller.js";
 import { getStudentTracking, getQuestionInbox, resolveQuestion, updateQuizSettings } from "../controllers/teaching.controller.js";
 import { LectureComment } from "../models/lectureComment.model.js";
 import { QuizResult } from "../models/quizResult.model.js";
@@ -36,7 +38,7 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     if ((await mongoose.connection.db.listCollections().toArray()).length) {
       throw new Error("Test database must be empty.");
     }
-    await Promise.all([User.init(), Course.init(), CoursePurchase.init(), Notification.init(), AuditLog.init(), LearningPosition.init()]);
+    await Promise.all([User.init(), Course.init(), CoursePurchase.init(), Notification.init(), AuditLog.init(), LearningPosition.init(), Assignment.init(), AssignmentSubmission.init()]);
   }, 20000);
   beforeEach(async () => {
     teacher = await User.create({ name: "Test Teacher", email: `teacher-${new mongoose.Types.ObjectId()}@example.test`, password: "test-only", role: "instructor", emailVerified: true, instructorWhatsapp: "+201001234567" });
@@ -64,6 +66,99 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     await getCourseProgress({ id: String(student._id), user: student, params: { courseId: String(course._id) } }, res);
     return res;
   };
+
+  const assignmentRequest = (actor, assignment, body = {}, extra = {}) => ({ id: String(actor._id), user: actor, params: { courseId: String(course._id), ...(assignment ? { assignmentId: String(assignment._id) } : {}), ...extra }, body, query: {} });
+  const invoke = async (handler, req) => { const res = response(); await handler(req, res); return res; };
+  const assignmentDefinition = { title: "Explain gravity", instructions: "Give an example", maxScore: 20, published: true, closed: false, dueAt: "2020-01-01T00:00:00Z" };
+  const prepareAssignment = async () => { student.enrolledCourses = [course._id]; await student.save(); return payload(await invoke(createAssignment, assignmentRequest(teacher, null, assignmentDefinition))).assignment; };
+
+  it("protects assignment drafts, ownership, enrollment and private submission history", async () => {
+    const assignment = payload(await invoke(createAssignment, assignmentRequest(teacher, null, { ...assignmentDefinition, published: false }))).assignment;
+    expect((await invoke(getAssignment, assignmentRequest(student, assignment))).status).toHaveBeenCalledWith(403);
+    student.enrolledCourses = [course._id]; await student.save();
+    expect((await invoke(getAssignment, assignmentRequest(student, assignment))).status).toHaveBeenCalledWith(404);
+    expect(payload(await invoke(listAssignments, assignmentRequest(student))).rows).toEqual([]);
+    expect((await invoke(createAssignment, assignmentRequest(student, null, assignmentDefinition))).status).toHaveBeenCalledWith(403);
+    const outsider = await User.create({ name: "Other teacher", email: `other-${course._id}@example.test`, password: "test-only", role: "instructor" });
+    expect((await invoke(updateAssignment, assignmentRequest(outsider, assignment, { ...assignmentDefinition, revision: 0 }))).status).toHaveBeenCalledWith(403);
+    await invoke(updateAssignment, assignmentRequest(teacher, assignment, { ...assignmentDefinition, revision: 0 }));
+    const sent = payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "Private answer", revision: 0 }))).submission;
+    expect(payload(await invoke(getAssignment, assignmentRequest(student, assignment))).submission.attempts[0].text).toBe("Private answer");
+    expect((await invoke(getSubmission, assignmentRequest(student, assignment, {}, { submissionId: String(sent._id) }))).status).toHaveBeenCalledWith(403);
+    const otherStudent = await User.create({ name: "Other learner", email: `learner-${course._id}@example.test`, password: "test-only", enrolledCourses: [course._id] });
+    expect(payload(await invoke(getAssignment, assignmentRequest(otherStudent, assignment))).submission).toBeNull();
+    student.enrolledCourses = []; await student.save();
+    expect((await invoke(getAssignment, assignmentRequest(student, assignment))).status).toHaveBeenCalledWith(403);
+  });
+
+  it("preserves assignment versions, deadline snapshots, feedback and a zero grade", async () => {
+    const assignment = await prepareAssignment();
+    let submission = payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "First answer", revision: 0 }))).submission;
+    expect(submission.late).toBe(true);
+    const extra = { submissionId: String(submission._id) };
+    expect((await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "returned", feedback: "", revision: 1 }, extra))).status).toHaveBeenCalledWith(400);
+    submission = payload(await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "returned", feedback: "Explain why", revision: 1 }, extra))).submission;
+    expect(submission.status).toBe("returned");
+    await invoke(updateAssignment, assignmentRequest(teacher, assignment, { ...assignmentDefinition, dueAt: "2099-01-01T00:00:00Z", revision: 0 }));
+    submission = payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { resourceUrl: "https://example.test/work", revision: submission.revision }))).submission;
+    expect(submission.attemptCount).toBe(2); expect(submission.late).toBe(false);
+    expect(submission.attempts[0]).toMatchObject({ text: "First answer", feedback: "Explain why", late: true, decision: "returned" });
+    expect((await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "graded", score: 21, revision: submission.revision }, extra))).status).toHaveBeenCalledWith(400);
+    submission = payload(await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "graded", score: 0, feedback: "Try the worked example", revision: submission.revision }, extra))).submission;
+    expect(submission).toMatchObject({ score: 0, status: "graded", attemptCount: 2 });
+    expect(submission.attempts[1].score).toBe(0);
+    expect((await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "Overwrite", revision: submission.revision }))).status).toHaveBeenCalledWith(409);
+    expect(await Notification.countDocuments({ userId: student._id, type: "assignment-review" })).toBe(2);
+    expect(await CourseProgress.countDocuments({ courseId: String(course._id) })).toBe(0);
+  });
+
+  it("serializes duplicate submissions and competing reviews and locks the submitted rubric", async () => {
+    const assignment = await prepareAssignment();
+    const req = assignmentRequest(student, assignment, { text: "Answer", revision: 0 });
+    const pair = await Promise.all([invoke(submitAssignment, req), invoke(submitAssignment, req)]);
+    expect(pair.filter(res => payload(res).submission)).toHaveLength(1);
+    expect(pair.filter(res => res.status.mock.calls.some(([status]) => status === 409))).toHaveLength(1);
+    expect(await AssignmentSubmission.countDocuments({ assignmentId: assignment._id })).toBe(1);
+    expect((await Assignment.findById(assignment._id)).submissionCount).toBe(1);
+    const submission = await AssignmentSubmission.findOne({ assignmentId: assignment._id });
+    const reviews = await Promise.all([0, 20].map(score => invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "graded", score, revision: 1 }, { submissionId: String(submission._id) }))));
+    expect(reviews.filter(res => payload(res).submission)).toHaveLength(1);
+    expect(reviews.filter(res => res.status.mock.calls.some(([status]) => status === 409))).toHaveLength(1);
+    const locked = await invoke(updateAssignment, assignmentRequest(teacher, assignment, { ...assignmentDefinition, maxScore: 30, revision: 0 }));
+    expect(payload(locked).code).toBe("ASSIGNMENT_LOCKED");
+    await invoke(updateAssignment, assignmentRequest(teacher, assignment, { ...assignmentDefinition, closed: true, revision: 0 }));
+    expect(payload(await invoke(updateAssignment, assignmentRequest(teacher, assignment, { ...assignmentDefinition, revision: 0 }))).code).toBe("STALE_ASSIGNMENT");
+  });
+
+  it("rejects unsafe work links and prevents new or returned submissions on closed assignments", async () => {
+    const assignment = await prepareAssignment();
+    for (const resourceUrl of ["javascript:alert(1)", "http://example.test", "https://user:pass@example.test", "not-a-url"]) {
+      expect(payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { resourceUrl, revision: 0 }))).code).toBe("INVALID_LINK");
+    }
+    const submission = payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "Answer", revision: 0 }))).submission;
+    await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "returned", feedback: "Revise", revision: 1 }, { submissionId: String(submission._id) }));
+    await invoke(updateAssignment, assignmentRequest(teacher, assignment, { ...assignmentDefinition, closed: true, revision: 0 }));
+    expect(payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "Revision", revision: 2 }))).code).toBe("ASSIGNMENT_CLOSED");
+    expect(payload(await invoke(getAssignment, assignmentRequest(student, assignment))).submission.attempts).toHaveLength(1);
+    await AssignmentSubmission.updateOne({ _id: submission._id }, { $set: { attemptCount: 10 } });
+    await invoke(updateAssignment, assignmentRequest(teacher, assignment, { ...assignmentDefinition, revision: 1 }));
+    expect(payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "Revision", revision: 2 }))).code).toBe("ATTEMPT_LIMIT");
+  });
+
+  it("paginates assignment summaries without answer bodies and clamps old page links", async () => {
+    const assignment = await prepareAssignment();
+    await Assignment.insertMany(Array.from({ length: 13 }, (_, i) => ({ ...assignmentDefinition, title: `Work ${i}`, courseId: course._id })));
+    const req = assignmentRequest(student);
+    const first = payload(await invoke(listAssignments, req)); expect(first.rows).toHaveLength(12); expect(first.total).toBe(14);
+    expect(first.rows[0]).not.toHaveProperty("instructions"); expect(first.rows[0].submissionCount).toBeUndefined();
+    expect(payload(await invoke(listAssignments, { ...req, query: { page: "99" } }))).toMatchObject({ page: 2, totalPages: 2 });
+    await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "Hidden from list", revision: 0 }));
+    const managed = payload(await invoke(listSubmissions, assignmentRequest(teacher, assignment)));
+    expect(managed.rows).toHaveLength(1); expect(managed.rows[0].studentId.email).toBe(student.email); expect(managed.rows[0]).not.toHaveProperty("attempts");
+    expect((await invoke(listAssignments, { ...req, query: { page: "-1" } })).status).toHaveBeenCalledWith(400);
+    course.coursePrice = 0; await course.save(); student.enrolledCourses = []; await student.save();
+    expect(payload(await invoke(getAssignment, assignmentRequest(student, assignment))).assignment.title).toBe(assignment.title);
+  });
 
   it("enforces configured quiz limits and preserves each attempt's pass policy", async () => {
     const lecture = await Lecture.create({ lectureTitle: "Quiz", quizQuestions: [{ questionText: "2 + 2?", options: ["4", "5"], correctOptionIndex: 0 }] });

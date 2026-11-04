@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import QuizAttemptSummary from "@/components/QuizAttemptSummary";
 import CurriculumList from "@/components/CurriculumList";
 import { useUiText, useFeedbackText } from "@/components/useUiText";
@@ -805,6 +806,7 @@ const CourseProgress = () => {
               <Button variant="outline" disabled={activeLectureIndex >= courseDetails.lectures.length - 1} onClick={() => handleSelectLecture(courseDetails.lectures[activeLectureIndex + 1])}>{language === "ar" ? "الدرس التالي" : "Next lesson"}</Button>
             </nav>
 
+            <Link className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-primary" to={`/course-assignments/${courseId}`}>{language === "ar" ? "واجبات الكورس" : "Course assignments"}</Link>
             <Tabs defaultValue="overview" className="mt-5">
               <TabsList className="w-full sm:w-auto">
                 <TabsTrigger value="overview" className="flex-1 sm:flex-none">{ui("Overview")}</TabsTrigger>

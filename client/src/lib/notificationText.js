@@ -2,6 +2,10 @@
 export function notificationText(notification, language) {
   const message = notification.message || "";
   if (language !== "ar") return message;
+  if (notification.type === "assignment-review") {
+    if (message === "Your assignment has been graded.") return "تم تصحيح واجبك. الدرجة والملاحظات متاحة دلوقتي.";
+    if (message === "Your assignment needs a new submission.") return "المدرّس طلب تعديل واجبك وإعادة التسليم. راجع ملاحظاته.";
+  }
   const templates = {
     "manual-order-approved": [/^Your payment for (.*) was confirmed\. Course access is now available\.$/s, (_, course) => `تم تأكيد دفع كورس ${course}. الكورس متاح ليك دلوقتي.`],
     "manual-order-rejected": [/^Your order for (.*) was rejected by the instructor\.$/s, (_, course) => `المدرّس رفض طلب اشتراكك في ${course}.`],

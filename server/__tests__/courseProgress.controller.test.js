@@ -249,7 +249,7 @@ describe("comment notification reads", () => {
     expect(Notification.find).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: "student_1",
-        type: { $in: ["comment", "comment-reply", "manual-order-approved", "manual-order-rejected"] },
+        type: { $in: ["assignment-review", "comment", "comment-reply", "manual-order-approved", "manual-order-rejected"] },
       })
     );
     expect(res.status).toHaveBeenCalledWith(200);
@@ -312,7 +312,7 @@ describe("comment notification reads", () => {
       {
         userId: "student_1",
         isRead: false,
-        type: { $in: ["comment", "comment-reply", "manual-order-approved", "manual-order-rejected"] },
+        type: { $in: ["assignment-review", "comment", "comment-reply", "manual-order-approved", "manual-order-rejected"] },
       },
       {
         $set: expect.objectContaining({

@@ -13,6 +13,7 @@ const Sidebar = () => {
     { to: "orders", label: t("orders"), icon: ReceiptText },
     ...(isAdmin ? [{ to: "users", label: t("users"), icon: Users }] : []),
     ...(isAdmin ? [{ to: "audit-logs", label: t("activity"), icon: ScrollText }] : []),
+    { to: "assignments", label: language === "ar" ? "الواجبات" : "Assignments", icon: ClipboardList },
     { to: "students", label: language === "ar" ? "متابعة الطلاب" : "Student progress", icon: Users },
     { to: "questions", label: language === "ar" ? "أسئلة الطلاب" : "Questions", icon: MessageSquare },
     { to: "quiz-dashboard", label: t("quiz"), icon: ClipboardList },
@@ -49,6 +50,7 @@ const Sidebar = () => {
             <ScrollText size={22} />
             <h1>{t("activity")}</h1>
           </NavLink>}
+          <NavLink to="assignments" className={linkClassName}><ClipboardList size={22}/><span>{language === "ar" ? "الواجبات" : "Assignments"}</span></NavLink>
           <NavLink to="students" className={linkClassName}><Users size={22}/><span>{language === "ar" ? "متابعة الطلاب" : "Student progress"}</span></NavLink>
           <NavLink to="questions" className={linkClassName}><MessageSquare size={22}/><span>{language === "ar" ? "أسئلة الطلاب" : "Questions"}</span></NavLink>
           <NavLink to="quiz-dashboard" className={linkClassName}>

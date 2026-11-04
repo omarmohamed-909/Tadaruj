@@ -375,9 +375,72 @@ test("quiz policy, student tracking and question inbox connect the teaching jour
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath("questions-ar-mobile.png"), fullPage: true });
     await page.getByRole("link", { name: "متابعة الطلاب", exact: true }).last().click();
+    await expect(page.getByRole("heading", { name: "متابعة الطلاب", exact: true })).toBeVisible();
     await page.getByRole("combobox", { name: "الكورس", exact: true }).selectOption(courseId);
     await expect(page.getByRole("heading", { name: "E2E Member 23", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath("students-ar-mobile.png"), fullPage: true });
   } finally { await learnerContext.close(); }
+});
+
+
+test("assignment lifecycle preserves revisions and grades across teacher and student sessions", async ({ page, browser }) => {
+  test.setTimeout(90000);
+  const fixture = await fixtures();
+  await login(page, fixture.instructorEmail, fixture.password);
+  await page.goto(`/instructor/assignments?courseId=${fixture.teachingCourseId}`);
+  await page.getByRole("button", { name: "Add assignment", exact: true }).click();
+  await page.getByLabel("Assignment title", { exact: true }).fill("Gravity assignment");
+  await page.getByLabel("Instructions", { exact: true }).fill("Explain gravity with a practical example.");
+  await page.getByLabel("Maximum score", { exact: true }).fill("20");
+  await page.getByLabel("Due date in your local time").fill("2020-01-01T12:00");
+  await page.getByLabel("Publish to students").check();
+  await page.getByRole("button", { name: "Save assignment", exact: true }).click();
+  await expect(page).toHaveURL(/assignments\/[a-f0-9]+\/[a-f0-9]+$/);
+  const assignmentId = new URL(page.url()).pathname.split("/").at(-1);
+  const studentContext = await browser.newContext(); await isolate(studentContext);
+  const student = await studentContext.newPage();
+  try {
+    await login(student, fixture.teachingStudentEmail, fixture.password);
+    await student.goto(`/course-assignments/${fixture.teachingCourseId}`);
+    await student.getByRole("link", { name: "Open assignment", exact: true }).click();
+    await student.getByLabel("Your answer", { exact: true }).fill("Objects fall down.");
+    await student.getByRole("link", { name: "Back to assignments", exact: true }).click();
+    await expect(student.getByRole("heading", { name: "Unsent answer" })).toBeVisible();
+    await student.getByRole("button", { name: "Keep writing" }).click();
+    await student.getByRole("button", { name: "Submit assignment", exact: true }).click();
+    await expect(student.getByText("Objects fall down.", { exact: true })).toBeVisible();
+    await expect(student.getByLabel("Your answer", { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Refresh submissions" }).click();
+    await page.getByRole("button", { name: "View and review", exact: true }).click();
+    await expect(page.getByText("Objects fall down.", { exact: true })).toBeVisible();
+    await page.getByLabel("Teacher feedback", { exact: true }).fill("Explain the force involved.");
+    await page.getByRole("button", { name: "Request resubmission", exact: true }).click();
+    await expect(page.getByText("Review saved.", { exact: true })).toBeVisible();
+    await student.getByRole("button", { name: "Refresh result" }).click();
+    await student.getByLabel("Your answer", { exact: true }).fill("Gravity attracts objects toward the Earth.");
+    await student.getByRole("button", { name: "Submit assignment", exact: true }).click();
+    await expect(student.getByText("Gravity attracts objects toward the Earth.", { exact: true })).toBeVisible();
+    await page.reload();
+    await page.getByRole("button", { name: "View and review", exact: true }).click();
+    await page.getByLabel("Score / 20", { exact: true }).fill("18");
+    await page.getByLabel("Teacher feedback", { exact: true }).fill("Clear explanation.");
+    await page.getByRole("button", { name: "Save grade", exact: true }).click();
+    await expect(page.getByText("Review saved.", { exact: true })).toBeVisible();
+    await student.getByRole("button", { name: "Refresh result" }).click();
+    await expect(student.getByText("Graded · 18/20", { exact: true })).toBeVisible();
+    await expect(student.getByText("Clear explanation.", { exact: true })).toBeVisible();
+    await expect(student.getByText("Submission version 1", { exact: false })).toBeVisible();
+    await page.getByText("Edit assignment settings", { exact: true }).click();
+    await expect(page.getByLabel("Maximum score", { exact: true })).toBeDisabled();
+    await student.getByRole("button", { name: "Switch to dark mode", exact: true }).click();
+    await student.getByRole("button", { name: "Change language", exact: true }).click();
+    await student.setViewportSize({ width: 390, height: 844 });
+    await expect(student.getByRole("heading", { name: "تسليمك" })).toBeVisible();
+    expect(await student.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await expect(student.locator("html")).toHaveAttribute("data-academy-theme", "");
+    await student.evaluate(() => window.scrollTo(0, 0));
+    await student.screenshot({ path: "../.test-runtime/assignment-student-mobile.png", fullPage: true });
+    expect(assignmentId).toMatch(/^[a-f0-9]{24}$/);
+  } finally { await studentContext.close(); }
 });

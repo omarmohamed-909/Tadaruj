@@ -1,5 +1,16 @@
 # سجل التحقق — تدرّج
 
+## Assignments, submissions and grading — 4 November 2026
+
+- Added course-level drafts/publication, deadlines, closure, written or HTTPS-link submissions, ten-version history, feedback, resubmission requests and integer grading (including zero). Review notifications use the existing in-app inbox with Arabic localization. Assignment grades remain separate from course completion.
+- Server tests cover private drafts, enrollment/ownership isolation, safe links, deadline snapshots, previous feedback, rubric locks, pagination, concurrent duplicate submissions and competing reviews. Course deletion now cleans up assignments and their notifications.
+- Validation: **382 server tests**, **170 frontend tests**, lint, production build and startup bundle budget passed. All **13 browser journeys** passed across the full run and the targeted rerun described below; GitHub CI runs the complete suite again for the release commit.
+- The first full browser run passed 12/13. The existing teaching journey selected a shared course picker before route navigation completed, carrying the question inbox status into the student-tracking URL. The test now waits for the destination heading; both that journey and the assignment lifecycle passed on rerun.
+- Browser assignment coverage uses separate teacher/student sessions: create/publish, late first submission, unsent-answer navigation guard, request changes, resubmit, grade, refresh, locked rubric and Arabic dark-mode mobile layout. Visual review found and corrected the new student route's missing academy palette binding; the palette regression test and browser rerun passed.
+- Final initial JavaScript: **489,732 bytes / 156,657 bytes gzip**, below the existing 500,000 / 165,000 budgets. Assignment pages and APIs load lazily.
+- Tests use isolated local MongoDB and synthetic accounts. No production assignments, real student messages, external work links or payments were created by automated verification.
+
+
 
 ## Quizzes, student tracking and question inbox — 30 October 2026
 
