@@ -138,6 +138,25 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     expect((await todoList()).total).toBe(0);
   });
 
+  it("orders student work by deadline across pages and leaves undated tasks last", async () => {
+    await prepareAssignment();
+    await Assignment.insertMany([
+      { ...assignmentDefinition, title: "Undated", dueAt: null, courseId: course._id },
+      ...Array.from({ length: 12 }, (_, day) => ({
+        ...assignmentDefinition, title: `Future day ${day + 1}`, dueAt: new Date(Date.UTC(2099, 0, day + 1)), courseId: course._id,
+      })),
+    ]);
+    const readPage = async page => payload(await invoke(listAssignments, {
+      ...assignmentRequest(student), query: { view: "todo", page },
+    }));
+    const first = await readPage("1");
+    const second = await readPage("2");
+    expect(first.rows[0]).toMatchObject({ title: assignmentDefinition.title, overdue: true });
+    expect(first.rows[1]).toMatchObject({ title: "Future day 1", overdue: false });
+    expect(second.rows.map(item => item.title)).toEqual(["Future day 12", "Undated"]);
+    expect(second.rows[1].overdue).toBe(false);
+  });
+
   it("serializes duplicate submissions and competing reviews and locks the submitted rubric", async () => {
     const assignment = await prepareAssignment();
     const req = assignmentRequest(student, assignment, { text: "Answer", revision: 0 });

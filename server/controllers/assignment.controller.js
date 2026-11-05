@@ -50,7 +50,8 @@ export const listAssignments = wrap(async (req, res) => {
   const course = await access(req, Boolean(req.assignmentManagement));
   const isManager = req.assignmentManagement && manager(req, course);
   const filter = { courseId: course._id, ...(isManager ? {} : { published: true }) };
-  if (req.query?.view === "todo") {
+  const todo = req.query?.view === "todo";
+  if (todo) {
     if (isManager || req.user?.role !== "student") fail(403, "STUDENT_ONLY");
     const lockedIds = await AssignmentSubmission.distinct("assignmentId", {
       courseId: course._id,
@@ -62,7 +63,18 @@ export const listAssignments = wrap(async (req, res) => {
   }
   const total = await Assignment.countDocuments(filter), totalPages = Math.max(1, Math.ceil(total / 12));
   const page = Math.min(pageNumber(req.query), totalPages);
-  const assignments = await Assignment.find(filter).select("title maxScore dueAt published closed revision submissionCount createdAt").sort({ createdAt: -1, _id: -1 }).skip((page - 1) * 12).limit(12).lean();
+  const fields = { title: 1, maxScore: 1, dueAt: 1, published: 1, closed: 1, revision: 1, submissionCount: 1, createdAt: 1 };
+  const offset = (page - 1) * 12;
+  const assignments = todo
+    ? await Assignment.aggregate([
+        { $match: filter },
+        { $set: { noDeadline: { $eq: [{ $ifNull: ["$dueAt", null] }, null] } } },
+        { $sort: { noDeadline: 1, dueAt: 1, createdAt: -1, _id: -1 } },
+        { $skip: offset },
+        { $limit: 12 },
+        { $project: { ...fields, overdue: { $and: [{ $not: ["$noDeadline"] }, { $lt: ["$dueAt", "$$NOW"] }] } } },
+      ])
+    : await Assignment.find(filter).select(fields).sort({ createdAt: -1, _id: -1 }).skip(offset).limit(12).lean();
   const assignmentIds = assignments.map(item => item._id);
   let rows;
   if (isManager) {
