@@ -404,6 +404,9 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
   try {
     await login(student, fixture.teachingStudentEmail, fixture.password);
     await student.goto(`/course-assignments/${fixture.teachingCourseId}`);
+    await student.getByRole("combobox", { name: "Show assignments" }).selectOption("todo");
+    await expect(student).toHaveURL(/view=todo/);
+    await student.reload();
     await student.getByRole("link", { name: "Open assignment", exact: true }).click();
     await student.getByLabel("Your answer", { exact: true }).fill("Objects fall down.");
     await student.getByRole("link", { name: "Back to assignments", exact: true }).click();

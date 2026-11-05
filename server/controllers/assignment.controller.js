@@ -50,6 +50,16 @@ export const listAssignments = wrap(async (req, res) => {
   const course = await access(req, Boolean(req.assignmentManagement));
   const isManager = req.assignmentManagement && manager(req, course);
   const filter = { courseId: course._id, ...(isManager ? {} : { published: true }) };
+  if (req.query?.view === "todo") {
+    if (isManager || req.user?.role !== "student") fail(403, "STUDENT_ONLY");
+    const lockedIds = await AssignmentSubmission.distinct("assignmentId", {
+      courseId: course._id,
+      studentId: req.id,
+      $or: [{ status: { $ne: "returned" } }, { attemptCount: { $gte: 10 } }],
+    });
+    filter.closed = false;
+    filter._id = { $nin: lockedIds };
+  }
   const total = await Assignment.countDocuments(filter), totalPages = Math.max(1, Math.ceil(total / 12));
   const page = Math.min(pageNumber(req.query), totalPages);
   const assignments = await Assignment.find(filter).select("title maxScore dueAt published closed revision submissionCount createdAt").sort({ createdAt: -1, _id: -1 }).skip((page - 1) * 12).limit(12).lean();

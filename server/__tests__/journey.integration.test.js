@@ -122,6 +122,22 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     expect(await CourseProgress.countDocuments({ courseId: String(course._id) })).toBe(0);
   });
 
+  it("filters a student's actionable assignments before pagination, including returned work", async () => {
+    const assignment = await prepareAssignment();
+    const req = assignmentRequest(student);
+    const todoList = async () => payload(await invoke(listAssignments, { ...req, query: { view: "todo" } }));
+    await Assignment.insertMany(Array.from({ length: 14 }, (_, index) => ({
+      ...assignmentDefinition, title: `Closed task ${index}`, courseId: course._id, closed: true,
+    })));
+    expect((await todoList()).rows.map(row => String(row._id))).toEqual([String(assignment._id)]);
+    const submitted = payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "Draft answer", revision: 0 }))).submission;
+    expect((await todoList()).total).toBe(0);
+    await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "returned", feedback: "Revise", revision: 1 }, { submissionId: String(submitted._id) }));
+    expect((await todoList()).rows[0].submission.status).toBe("returned");
+    await Assignment.updateOne({ _id: assignment._id }, { closed: true });
+    expect((await todoList()).total).toBe(0);
+  });
+
   it("serializes duplicate submissions and competing reviews and locks the submitted rubric", async () => {
     const assignment = await prepareAssignment();
     const req = assignmentRequest(student, assignment, { text: "Answer", revision: 0 });
