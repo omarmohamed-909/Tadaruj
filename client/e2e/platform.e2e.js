@@ -397,6 +397,7 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
   await page.getByLabel("Publish to students").check();
   await page.getByRole("button", { name: "Save assignment", exact: true }).click();
   await expect(page).toHaveURL(/assignments\/[a-f0-9]+\/[a-f0-9]+$/);
+  await expect(page.getByRole("combobox", { name: "Submission status" })).toHaveValue("submitted");
   const assignmentId = new URL(page.url()).pathname.split("/").at(-1);
   const studentContext = await browser.newContext(); await isolate(studentContext);
   const student = await studentContext.newPage();
@@ -411,6 +412,10 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
     await student.getByRole("button", { name: "Submit assignment", exact: true }).click();
     await expect(student.getByText("Objects fall down.", { exact: true })).toBeVisible();
     await expect(student.getByLabel("Your answer", { exact: true })).toHaveCount(0);
+    await page.getByRole("link", { name: "Back to assignments", exact: true }).click();
+    const task = page.getByRole("article").filter({ hasText: "Gravity assignment" });
+    await expect(task.getByText("1 awaiting review", { exact: false })).toBeVisible();
+    await task.getByRole("link", { name: "Manage and review" }).click();
     await page.getByRole("button", { name: "Refresh submissions" }).click();
     await page.getByRole("button", { name: "View and review", exact: true }).click();
     await expect(page.getByText("Objects fall down.", { exact: true })).toBeVisible();
@@ -427,6 +432,9 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
     await page.getByLabel("Teacher feedback", { exact: true }).fill("Clear explanation.");
     await page.getByRole("button", { name: "Save grade", exact: true }).click();
     await expect(page.getByText("Review saved.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "View and review" })).toHaveCount(0);
+    await page.getByRole("combobox", { name: "Submission status" }).selectOption("graded");
+    await expect(page.getByRole("button", { name: "View and review" })).toBeVisible();
     await student.getByRole("button", { name: "Refresh result" }).click();
     await expect(student.getByText("Graded · 18/20", { exact: true })).toBeVisible();
     await expect(student.getByText("Clear explanation.", { exact: true })).toBeVisible();

@@ -53,8 +53,28 @@ export const listAssignments = wrap(async (req, res) => {
   const total = await Assignment.countDocuments(filter), totalPages = Math.max(1, Math.ceil(total / 12));
   const page = Math.min(pageNumber(req.query), totalPages);
   const assignments = await Assignment.find(filter).select("title maxScore dueAt published closed revision submissionCount createdAt").sort({ createdAt: -1, _id: -1 }).skip((page - 1) * 12).limit(12).lean();
-  const submissions = isManager ? [] : await AssignmentSubmission.find({ assignmentId: { $in: assignments.map(item => item._id) }, studentId: req.id }).select("assignmentId status score feedback submittedAt late revision attemptCount").lean();
-  res.json({ courseTitle: course.courseTitle, rows: assignments.map(item => ({ ...item, ...(isManager ? {} : { submissionCount: undefined, submission: submissions.find(s => String(s.assignmentId) === String(item._id)) || null }) })), page, totalPages, total });
+  const assignmentIds = assignments.map(item => item._id);
+  let rows;
+  if (isManager) {
+    const counts = await AssignmentSubmission.aggregate([
+      { $match: { assignmentId: { $in: assignmentIds }, status: "submitted" } },
+      { $group: { _id: "$assignmentId", count: { $sum: 1 } } },
+    ]);
+    const pending = new Map(counts.map(item => [String(item._id), item.count]));
+    rows = assignments.map(item => ({
+      ...item,
+      pendingReviewCount: pending.get(String(item._id)) || 0,
+    }));
+  } else {
+    const submissions = await AssignmentSubmission.find({ assignmentId: { $in: assignmentIds }, studentId: req.id })
+      .select("assignmentId status score feedback submittedAt late revision attemptCount").lean();
+    rows = assignments.map(item => ({
+      ...item,
+      submissionCount: undefined,
+      submission: submissions.find(submission => String(submission.assignmentId) === String(item._id)) || null,
+    }));
+  }
+  res.json({ courseTitle: course.courseTitle, rows, page, totalPages, total });
 });
 export const createAssignment = wrap(async (req, res) => {
   await access(req, true);

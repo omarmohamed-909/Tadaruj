@@ -93,20 +93,30 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
 
   it("preserves assignment versions, deadline snapshots, feedback and a zero grade", async () => {
     const assignment = await prepareAssignment();
+    const pendingReviews = async () => {
+      const request = { ...assignmentRequest(teacher), assignmentManagement: true };
+      const list = payload(await invoke(listAssignments, request));
+      return list.rows.find(row => String(row._id) === String(assignment._id)).pendingReviewCount;
+    };
+    expect(await pendingReviews()).toBe(0);
     let submission = payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "First answer", revision: 0 }))).submission;
     expect(submission.late).toBe(true);
+    expect(await pendingReviews()).toBe(1);
     const extra = { submissionId: String(submission._id) };
     expect((await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "returned", feedback: "", revision: 1 }, extra))).status).toHaveBeenCalledWith(400);
     submission = payload(await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "returned", feedback: "Explain why", revision: 1 }, extra))).submission;
     expect(submission.status).toBe("returned");
+    expect(await pendingReviews()).toBe(0);
     await invoke(updateAssignment, assignmentRequest(teacher, assignment, { ...assignmentDefinition, dueAt: "2099-01-01T00:00:00Z", revision: 0 }));
     submission = payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { resourceUrl: "https://example.test/work", revision: submission.revision }))).submission;
+    expect(await pendingReviews()).toBe(1);
     expect(submission.attemptCount).toBe(2); expect(submission.late).toBe(false);
     expect(submission.attempts[0]).toMatchObject({ text: "First answer", feedback: "Explain why", late: true, decision: "returned" });
     expect((await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "graded", score: 21, revision: submission.revision }, extra))).status).toHaveBeenCalledWith(400);
     submission = payload(await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { decision: "graded", score: 0, feedback: "Try the worked example", revision: submission.revision }, extra))).submission;
     expect(submission).toMatchObject({ score: 0, status: "graded", attemptCount: 2 });
     expect(submission.attempts[1].score).toBe(0);
+    expect(await pendingReviews()).toBe(0);
     expect((await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "Overwrite", revision: submission.revision }))).status).toHaveBeenCalledWith(409);
     expect(await Notification.countDocuments({ userId: student._id, type: "assignment-review" })).toBe(2);
     expect(await CourseProgress.countDocuments({ courseId: String(course._id) })).toBe(0);
