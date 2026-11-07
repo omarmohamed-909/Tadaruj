@@ -6,6 +6,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { User } from "../models/user.model.js";
+import { AuditLog } from "../models/auditLog.model.js";
 import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
 
@@ -30,6 +31,7 @@ await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 10000 
 const password = "Local-E2E-password-2026!";
 const instructor = await User.create({ name: "E2E Instructor", email: "e2e-instructor@example.test", password: await bcrypt.hash(password, 10), role: "instructor", emailVerified: true, instructorWhatsapp: "+201000000000", instructorSubjects: ["Science"] });
 const admin = await User.create({ name: "E2E Admin", email: "e2e-admin@example.test", password: instructor.password, role: "admin", emailVerified: true });
+await AuditLog.create({ actor: admin._id, action: "test.access-reviewed", targetType: "User", targetId: String(instructor._id) });
 const members = await User.insertMany(Array.from({ length: 25 }, (_, index) => ({ name: `E2E Member ${String(index).padStart(2, "0")}`, email: `e2e-member-${index}@example.test`, password: instructor.password, role: "student", emailVerified: true, status: index % 5 === 0 ? "suspended" : "active", createdAt: new Date("2025-01-01") })));
 const lecture = await Lecture.create({ lectureTitle: "E2E playback lesson", videoUrl: "http://127.0.0.1:8094/lesson.webm", description: "A synthetic two-second test video." });
 const courses = await Course.insertMany(Array.from({ length: 26 }, (_, index) => ({

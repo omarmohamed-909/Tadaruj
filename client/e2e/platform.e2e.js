@@ -388,7 +388,11 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
   test.setTimeout(90000);
   const fixture = await fixtures();
   await login(page, fixture.instructorEmail, fixture.password);
-  await page.goto(`/instructor/assignments?courseId=${fixture.teachingCourseId}`);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("header").first().getByRole("link", { name: "Dashboard", exact: true }).click();
+  const workspace = page.getByRole("navigation", { name: "Dashboard", exact: true });
+  await workspace.getByRole("link", { name: "Assignments", exact: true }).click();
+  await page.getByRole("combobox", { name: "Course", exact: true }).selectOption({ label: "E2E Course 24" });
   await page.getByRole("button", { name: "Add assignment", exact: true }).click();
   await page.getByLabel("Assignment title", { exact: true }).fill("Gravity assignment");
   await page.getByLabel("Instructions", { exact: true }).fill("Explain gravity with a practical example.");
@@ -403,17 +407,13 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
   const student = await studentContext.newPage();
   try {
     await login(student, fixture.teachingStudentEmail, fixture.password);
-    await student.goto(`/course-assignments/${fixture.teachingCourseId}`);
-    await student.getByRole("combobox", { name: "Show assignments" }).selectOption("todo");
-    await expect(student).toHaveURL(/view=todo/);
-    await student.reload();
-    await student.getByRole("link", { name: "Open assignment", exact: true }).click();
-    await student.goto("/my-learning");
+    await student.setViewportSize({ width: 390, height: 844 });
+    await student.locator("header").first().getByRole("link", { name: "My learning", exact: true }).click();
     const tasks = student.getByRole("region", { name: "Assignments to do" });
     await tasks.getByRole("link", { name: /Gravity assignment/ }).click();
     await expect(student).toHaveURL(new RegExp(assignmentId + "$"));
     await student.getByLabel("Your answer", { exact: true }).fill("Objects fall down.");
-    await student.getByRole("link", { name: "Back to assignments", exact: true }).click();
+    await student.getByRole("link", { name: "Back to my learning", exact: true }).click();
     await expect(student.getByRole("heading", { name: "Unsent answer" })).toBeVisible();
     await student.getByRole("button", { name: "Keep writing" }).click();
     await student.getByRole("button", { name: "Submit assignment", exact: true }).click();
@@ -448,14 +448,30 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
     await expect(student.getByText("Submission version 1", { exact: false })).toBeVisible();
     await page.getByText("Edit assignment settings", { exact: true }).click();
     await expect(page.getByLabel("Maximum score", { exact: true })).toBeDisabled();
-    await page.goto(`/instructor/students?courseId=${fixture.teachingCourseId}&q=${encodeURIComponent(fixture.teachingStudentEmail)}`);
+    await workspace.getByRole("link", { name: "Student progress", exact: true }).click();
+    await page.getByRole("heading", { name: "Student progress", exact: true }).waitFor();
+    await page.getByRole("combobox", { name: "Course", exact: true }).selectOption({ label: "E2E Course 24" });
+    await page.getByLabel("Student name or email").fill(fixture.teachingStudentEmail);
+    await page.getByRole("button", { name: "Search", exact: true }).click();
     await page.getByText("Student assignments", { exact: true }).click();
     await expect(page.getByRole("heading", { name: "Gravity assignment" })).toBeVisible();
     await page.getByRole("button", { name: "View and review", exact: true }).click();
     await expect(page.getByText("Clear explanation.", { exact: true })).toBeVisible();
     await expect(page.getByText("Score: 18/20", { exact: true })).toBeVisible();
+    await student.getByRole("link", { name: "Back to my learning", exact: true }).click();
+    await expect(tasks.getByText("You have no assignments to submit right now.")).toBeVisible();
+    await student.getByRole("article").filter({ hasText: "E2E Course 24" }).getByRole("link").click();
+    await student.getByRole("link", { name: "Course assignments", exact: true }).click();
+    await student.getByRole("combobox", { name: "Show assignments" }).selectOption("todo");
+    await expect(student).toHaveURL(/view=todo/);
+    await student.reload();
+    await student.getByRole("combobox", { name: "Show assignments" }).selectOption("all");
+    await student.getByRole("link", { name: "Open assignment", exact: true }).click();
+    await expect(student.getByRole("heading", { name: "Your submission" })).toBeVisible();
+    await student.getByRole("button", { name: "Open menu" }).click();
     await student.getByRole("button", { name: "Switch to dark mode", exact: true }).click();
     await student.getByRole("button", { name: "Change language", exact: true }).click();
+    await student.keyboard.press("Escape");
     await student.setViewportSize({ width: 390, height: 844 });
     await expect(student.getByRole("heading", { name: "تسليمك" })).toBeVisible();
     expect(await student.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -497,6 +513,15 @@ for (const role of ["student", "instructor", "admin"]) {
     if (role === "student") {
       await expect(page.getByRole("heading", { name: "Assignments to do" })).toBeVisible();
       return;
+    }
+    if (role === "admin") {
+      const workspace = page.getByRole("navigation", { name: "Dashboard", exact: true });
+      await workspace.getByRole("link", { name: "Activity log", exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Activity log", exact: true })).toBeVisible();
+      const entry = page.getByRole("listitem").filter({ hasText: "test.access-reviewed" });
+      await expect(entry.getByText("E2E Admin", { exact: true })).toBeVisible();
+      await expect(entry.getByText(fixture.instructorId, { exact: false })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     }
     await page.goto(`/${role}`);
     await expect(page).toHaveURL(new RegExp(`/${role}/dashboard$`));

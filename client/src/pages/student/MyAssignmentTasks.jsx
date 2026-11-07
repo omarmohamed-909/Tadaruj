@@ -24,7 +24,7 @@ export default function MyAssignmentTasks() {
         {data.total === 0 && <p className="text-muted-foreground">{ar ? "مفيش واجبات محتاجة تسليم منك دلوقتي." : "You have no assignments to submit right now."}</p>}
         <ul className="divide-y divide-border">
           {data.rows.map(task => <li key={task._id}>
-            <Link to={`/course-assignments/${task.courseId}/${task._id}`} className="block rounded-lg px-2 py-3 hover:bg-accent focus-visible:outline-primary">
+            <Link to={`/course-assignments/${task.courseId}/${task._id}`} state={{ fromMyLearning: true }} className="block rounded-lg px-2 py-3 hover:bg-accent focus-visible:outline-primary">
               <span className="block break-words text-sm text-muted-foreground">{task.courseTitle}</span>
               <strong className="block break-words text-primary underline">{task.title}</strong>
               <span className="text-sm">{task.overdue && (ar ? "فات موعد التسليم · " : "Past due · ")}{formatDate(task.dueAt, ar)}</span>
