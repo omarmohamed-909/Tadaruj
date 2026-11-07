@@ -408,6 +408,10 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
     await expect(student).toHaveURL(/view=todo/);
     await student.reload();
     await student.getByRole("link", { name: "Open assignment", exact: true }).click();
+    await student.goto("/my-learning");
+    const tasks = student.getByRole("region", { name: "Assignments to do" });
+    await tasks.getByRole("link", { name: /Gravity assignment/ }).click();
+    await expect(student).toHaveURL(new RegExp(assignmentId + "$"));
     await student.getByLabel("Your answer", { exact: true }).fill("Objects fall down.");
     await student.getByRole("link", { name: "Back to assignments", exact: true }).click();
     await expect(student.getByRole("heading", { name: "Unsent answer" })).toBeVisible();

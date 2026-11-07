@@ -1,6 +1,10 @@
 import { courseProgressApi } from "./courseProgressApi";
 const tags = (result, error) => error ? [] : ["Assignments", "CommentNotifications"];
 const api = courseProgressApi.injectEndpoints({ endpoints: builder => ({
+  getMyAssignmentTasks: builder.query({
+    query: page => ({ url: "/my-learning/assignments", params: { page } }),
+    providesTags: ["Assignments"],
+  }),
   getTrackedAssignments: builder.query({
     query: ({ courseId, studentId, page }) => ({
       url: `/teaching/${courseId}/students/${studentId}/assignments`, params: { page },
@@ -16,4 +20,4 @@ const api = courseProgressApi.injectEndpoints({ endpoints: builder => ({
   getAssignmentSubmission: builder.query({ query: ({ courseId, assignmentId, submissionId }) => `/assignments/manager/${courseId}/${assignmentId}/submissions/${submissionId}`, providesTags: ["Assignments"] }),
   reviewAssignmentSubmission: builder.mutation({ query: ({ courseId, assignmentId, submissionId, ...body }) => ({ url: `/assignments/manager/${courseId}/${assignmentId}/submissions/${submissionId}`, method: "PATCH", body }), invalidatesTags: tags }),
 }) });
-export const { useGetTrackedAssignmentsQuery, useGetAssignmentsQuery, useGetAssignmentQuery, useCreateAssignmentMutation, useUpdateAssignmentMutation, useSubmitAssignmentMutation, useGetAssignmentSubmissionsQuery, useGetAssignmentSubmissionQuery, useReviewAssignmentSubmissionMutation } = api;
+export const { useGetMyAssignmentTasksQuery, useGetTrackedAssignmentsQuery, useGetAssignmentsQuery, useGetAssignmentQuery, useCreateAssignmentMutation, useUpdateAssignmentMutation, useSubmitAssignmentMutation, useGetAssignmentSubmissionsQuery, useGetAssignmentSubmissionQuery, useReviewAssignmentSubmissionMutation } = api;

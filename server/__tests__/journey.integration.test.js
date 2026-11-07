@@ -1,5 +1,5 @@
 import { Assignment, AssignmentSubmission } from "../models/assignment.model.js";
-import { createAssignment, getAssignment, listAssignments, updateAssignment, submitAssignment, listSubmissions, getSubmission, reviewSubmission } from "../controllers/assignment.controller.js";
+import { listMyAssignmentTasks, createAssignment, getAssignment, listAssignments, updateAssignment, submitAssignment, listSubmissions, getSubmission, reviewSubmission } from "../controllers/assignment.controller.js";
 import { getStudentTracking, getQuestionInbox, resolveQuestion, updateQuizSettings } from "../controllers/teaching.controller.js";
 import { LectureComment } from "../models/lectureComment.model.js";
 import { QuizResult } from "../models/quizResult.model.js";
@@ -174,6 +174,29 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     expect((await read()).rows[0].submission).not.toHaveProperty("attempts");
     expect((await invoke(getStudentTracking, { ...req, id: String(student._id), user: student })).status).toHaveBeenCalledWith(403);
     expect((await invoke(getStudentTracking, { ...req, params: { ...req.params, studentId: String(new mongoose.Types.ObjectId()) } })).status).toHaveBeenCalledWith(404);
+  });
+
+  it("merges actionable work across owned courses before paging and excludes unrelated and revoked courses", async () => {
+    const original = await prepareAssignment();
+    const joined = await Course.create({ courseTitle: "Second course", coursePrice: 200, creator: teacher._id });
+    const unrelated = await Course.create({ courseTitle: "Unrelated", coursePrice: 200, creator: teacher._id });
+    await CoursePurchase.create({ userId: student._id, courseId: joined._id, status: "completed", paymentId: "merge-test", amount: 200 });
+    await Assignment.insertMany([
+      { ...assignmentDefinition, courseId: joined._id, title: "Earliest", dueAt: new Date("2019-01-01") },
+      { ...assignmentDefinition, courseId: unrelated._id, title: "Private" },
+      { ...assignmentDefinition, courseId: joined._id, title: "Closed", closed: true },
+      { ...assignmentDefinition, courseId: joined._id, title: "Draft", published: false },
+    ]);
+    const req = assignmentRequest(student);
+    const read = async () => payload(await invoke(listMyAssignmentTasks, req));
+    expect((await read()).rows.map(row => [row.title, row.courseTitle])).toEqual([["Earliest", "Second course"], [original.title, course.courseTitle]]);
+    const submitted = payload(await invoke(submitAssignment, assignmentRequest(student, original, { text: "Answer", revision: 0 }))).submission;
+    expect((await read()).total).toBe(1);
+    await invoke(reviewSubmission, assignmentRequest(teacher, original, { revision: 1, decision: "returned", feedback: "Revise" }, { submissionId: String(submitted._id) }));
+    expect((await read()).rows[1].submission.status).toBe("returned");
+    student.enrolledCourses = []; await student.save();
+    expect((await read()).total).toBe(1);
+    expect((await invoke(listMyAssignmentTasks, assignmentRequest(teacher))).status).toHaveBeenCalledWith(403);
   });
 
   it("serializes duplicate submissions and competing reviews and locks the submitted rubric", async () => {

@@ -1,4 +1,4 @@
-import { listAssignments, createAssignment, getAssignment, updateAssignment, submitAssignment, listSubmissions, getSubmission, reviewSubmission } from "../controllers/assignment.controller.js";
+import { listMyAssignmentTasks, listAssignments, createAssignment, getAssignment, updateAssignment, submitAssignment, listSubmissions, getSubmission, reviewSubmission } from "../controllers/assignment.controller.js";
 import { getStudentTracking, getQuestionInbox, resolveQuestion, updateQuizSettings } from "../controllers/teaching.controller.js";
 import express from 'express';
 import isAuthenticated  from '../middlewares/isAuthenticated.js';
@@ -40,6 +40,7 @@ router.get('/teaching/:courseId/students', isAuthenticated, requireCourseManager
 router.get('/teaching/:courseId/students/:studentId/assignments', isAuthenticated, requireCourseManager, getStudentTracking);
 router.patch('/teaching/:courseId/questions/:commentId', isAuthenticated, requireCourseManager, resolveQuestion);
 router.patch('/teaching/:courseId/lecture/:lectureId/quiz-settings', isAuthenticated, requireCourseManager, updateQuizSettings);
+router.get('/my-learning/assignments', isAuthenticated, listMyAssignmentTasks);
 router.get('/my-learning', isAuthenticated, getMyLearning);
 router.put('/:courseId/lecture/:lectureId/position', isAuthenticated, saveLearningPosition);
 

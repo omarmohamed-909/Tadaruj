@@ -1,3 +1,6 @@
+import { CourseProgress } from "../models/courseProgress.js";
+import { QuizResult } from "../models/quizResult.model.js";
+import { LearningPosition } from "../models/learningPosition.model.js";
 import mongoose from "mongoose";
 import { Assignment, AssignmentSubmission } from "../models/assignment.model.js";
 import { Course } from "../models/course.model.js";
@@ -49,12 +52,36 @@ const assignmentFor = async (req, session) => {
 export const listAssignments = wrap(async (req, res) => {
   const course = await access(req, Boolean(req.assignmentManagement));
   const isManager = req.assignmentManagement && manager(req, course);
-  const filter = { courseId: course._id, ...(isManager ? {} : { published: true }) };
-  const todo = req.query?.view === "todo";
+  return assignmentList(req, res, [course], isManager, req.query?.view === "todo");
+});
+
+export const listMyAssignmentTasks = wrap(async (req, res) => {
+  if (req.user?.role !== "student") fail(403, "STUDENT_ONLY");
+  const userId = req.id;
+  const [user, purchases, progress, positions, quizzes, submissions] = await Promise.all([
+    User.findById(userId).select("enrolledCourses").lean(),
+    CoursePurchase.distinct("courseId", { userId, status: "completed" }),
+    CourseProgress.distinct("courseId", { userId }),
+    LearningPosition.distinct("courseId", { userId }),
+    QuizResult.distinct("courseId", { userId }),
+    AssignmentSubmission.distinct("courseId", { studentId: userId }),
+  ]);
+  const activity = [...new Set([...progress, ...positions, ...quizzes, ...submissions].map(String))].filter(validId);
+  const courses = await Course.find({ $or: [
+    { _id: { $in: [...(user?.enrolledCourses || []), ...purchases] } },
+    { _id: { $in: activity }, isPublished: true, $or: [{ coursePrice: { $lte: 0 } }, { coursePrice: null }] },
+  ] }).select("courseTitle").lean();
+  return assignmentList(req, res, courses, false, true);
+});
+
+async function assignmentList(req, res, courses, isManager, todo) {
+  const courseIds = courses.map(course => course._id);
+  const titles = new Map(courses.map(course => [String(course._id), course.courseTitle]));
+  const filter = { courseId: { $in: courseIds }, ...(isManager ? {} : { published: true }) };
   if (todo) {
     if (isManager || req.user?.role !== "student") fail(403, "STUDENT_ONLY");
     const lockedIds = await AssignmentSubmission.distinct("assignmentId", {
-      courseId: course._id,
+      courseId: { $in: courseIds },
       studentId: req.id,
       $or: [{ status: { $ne: "returned" } }, { attemptCount: { $gte: 10 } }],
     });
@@ -63,7 +90,7 @@ export const listAssignments = wrap(async (req, res) => {
   }
   const total = await Assignment.countDocuments(filter), totalPages = Math.max(1, Math.ceil(total / 12));
   const page = Math.min(pageNumber(req.query), totalPages);
-  const fields = { title: 1, maxScore: 1, dueAt: 1, published: 1, closed: 1, revision: 1, submissionCount: 1, createdAt: 1 };
+  const fields = { courseId: 1, title: 1, maxScore: 1, dueAt: 1, published: 1, closed: 1, revision: 1, submissionCount: 1, createdAt: 1 };
   const offset = (page - 1) * 12;
   const assignments = todo
     ? await Assignment.aggregate([
@@ -92,12 +119,13 @@ export const listAssignments = wrap(async (req, res) => {
       .select("assignmentId status score feedback submittedAt late revision attemptCount").lean();
     rows = assignments.map(item => ({
       ...item,
+      courseTitle: titles.get(String(item.courseId)),
       submissionCount: undefined,
       submission: submissions.find(submission => String(submission.assignmentId) === String(item._id)) || null,
     }));
   }
-  res.json({ courseTitle: course.courseTitle, rows, page, totalPages, total });
-});
+  res.json({ courseTitle: courses.length === 1 ? courses[0].courseTitle : undefined, rows, page, totalPages, total });
+}
 export const createAssignment = wrap(async (req, res) => {
   await access(req, true);
   const assignment = await Assignment.create({ ...definition(req.body || {}), courseId: req.params.courseId });

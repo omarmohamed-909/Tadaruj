@@ -1,3 +1,4 @@
+import MyAssignmentTasks from "./MyAssignmentTasks";
 import { Link, useSearchParams } from "react-router-dom";
 import { Play, BookOpen, ArrowUpRight } from "lucide-react";
 import { useGetMyLearningQuery } from "@/features/api/courseProgressApi";
@@ -24,6 +25,7 @@ export default function LearningDashboard() {
         <p className="mt-3 text-muted-foreground">{ar ? "كمّل اللي بدأته، وتابع تقدّمك في مكان واحد." : "Pick up where you left off and see how far you have come."}</p></div>
       <Link to="/courses" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 font-semibold text-primary hover:bg-accent">{ar ? "اكتشف كورسات" : "Explore courses"}<ArrowUpRight size={18} /></Link>
     </header>
+    <MyAssignmentTasks />
     {isError ? <div role="alert" className="rounded-2xl border border-border bg-card p-8"><p>{ar ? "تعذّر تحميل كورساتك. جرّب تاني." : "We could not load your courses. Please try again."}</p><button onClick={refetch} className="mt-4 rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground">{ar ? "إعادة المحاولة" : "Try again"}</button></div> : <>
       {featured && <section aria-label={ar ? "كمّل من آخر مرة" : "Continue learning"} className="grid overflow-hidden rounded-3xl border border-border bg-card md:grid-cols-[1fr_2fr]">
         <img src={secureMediaUrl(featured.courseThumbnail) || "/brand-mark.webp"} alt="" className={`h-48 w-full bg-muted md:h-full md:max-h-72 ${featured.courseThumbnail ? "object-cover" : "object-contain p-10"}`} />

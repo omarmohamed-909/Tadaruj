@@ -5,6 +5,7 @@ import LearningDashboard from "../pages/student/LearningDashboard";
 const { query } = vi.hoisted(() => ({ query: vi.fn() }));
 vi.mock("../features/api/courseProgressApi", () => ({ useGetMyLearningQuery: query }));
 vi.mock("../components/languageContext", () => ({ useLanguage: () => ({ language: "en", t: key => key }) }));
+vi.mock("../pages/student/MyAssignmentTasks", () => ({ default: () => null }));
 const course = { _id: "c1", courseTitle: "Physics", creator: { name: "Teacher" }, subject: "Science", status: "in-progress", completedLessons: 1, totalLessons: 4, percentage: 25, resumeLectureId: "l2", resumeLectureTitle: "Motion" };
 const renderPage = () => render(<MemoryRouter><LearningDashboard /></MemoryRouter>);
 describe("learning dashboard", () => {
