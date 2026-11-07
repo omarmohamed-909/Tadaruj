@@ -7,9 +7,9 @@ import { NavLink, Outlet } from "react-router-dom";
 const Sidebar = () => {
   const isAdmin = useSelector((state) => state.auth.user?.role === "admin");
   const { t, language } = useLanguage();
-  const adminMobileLinks = [
+  const workspaceLinks = [
     { to: "dashboard", label: t("dashboard"), icon: ChartNoAxesColumn },
-    { to: "course", label: t("courses"), icon: SquareLibrary },
+    { to: "course", label: language === "ar" ? "إدارة الكورسات" : "Manage courses", icon: SquareLibrary },
     { to: "orders", label: t("orders"), icon: ReceiptText },
     ...(isAdmin ? [{ to: "users", label: t("users"), icon: Users }] : []),
     ...(isAdmin ? [{ to: "audit-logs", label: t("activity"), icon: ScrollText }] : []),
@@ -29,40 +29,18 @@ const Sidebar = () => {
   return (
     <div className="flex min-h-screen w-full overflow-x-hidden bg-background text-foreground">
       <div className="hidden lg:block w-[250px] xl:w-[300px] shrink-0 space-y-8 border-e border-border bg-card p-5 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
-        <div className="space-y-2">
-          <NavLink to="dashboard" className={linkClassName}>
-            <ChartNoAxesColumn size={22} />
-            <h1>{t("dashboard")}</h1>
-          </NavLink>
-          <NavLink to="course" className={linkClassName}>
-            <SquareLibrary size={22} />
-            <h1>{t("courses")}</h1>
-          </NavLink>
-          <NavLink to="orders" className={linkClassName}>
-            <ReceiptText size={22} />
-            <h1>{t("orders")}</h1>
-          </NavLink>
-          {isAdmin && <NavLink to="users" className={linkClassName}>
-            <Users size={22} />
-            <h1>{t("users")}</h1>
-          </NavLink>}
-          {isAdmin && <NavLink to="audit-logs" className={linkClassName}>
-            <ScrollText size={22} />
-            <h1>{t("activity")}</h1>
-          </NavLink>}
-          <NavLink to="assignments" className={linkClassName}><ClipboardList size={22}/><span>{language === "ar" ? "الواجبات" : "Assignments"}</span></NavLink>
-          <NavLink to="students" className={linkClassName}><Users size={22}/><span>{language === "ar" ? "متابعة الطلاب" : "Student progress"}</span></NavLink>
-          <NavLink to="questions" className={linkClassName}><MessageSquare size={22}/><span>{language === "ar" ? "أسئلة الطلاب" : "Questions"}</span></NavLink>
-          <NavLink to="quiz-dashboard" className={linkClassName}>
-            <ClipboardList size={22} />
-            <h1>{t("quiz")}</h1>
-          </NavLink>
-        </div>
+        <nav aria-label={t("dashboard")} className="space-y-2">
+          {workspaceLinks.map(({ to, label, icon }) => (
+            <NavLink key={to} to={to} className={linkClassName}>
+              {React.createElement(icon, { size: 20, "aria-hidden": true })}<span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
       </div>
       <div className="min-w-0 flex-1 px-2 py-3 sm:px-3 sm:py-4 lg:px-6 lg:py-6 xl:px-8 xl:py-8">
         <div className="mb-3 lg:hidden">
-          <div className="flex gap-2 overflow-x-auto rounded-xl border border-border bg-card p-2 shadow-sm dark:border-border dark:bg-card">
-            {adminMobileLinks.map((item) => {
+          <nav aria-label={t("dashboard")} className="grid grid-cols-2 gap-1 sm:grid-cols-3 rounded-xl border border-border bg-card p-2 shadow-sm dark:border-border dark:bg-card">
+            {workspaceLinks.map((item) => {
               const Icon = item.icon;
 
               return (
@@ -70,7 +48,7 @@ const Sidebar = () => {
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                    `inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -82,7 +60,7 @@ const Sidebar = () => {
                 </NavLink>
               );
             })}
-          </div>
+          </nav>
         </div>
         <Outlet  />
       </div>

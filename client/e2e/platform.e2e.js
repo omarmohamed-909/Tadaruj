@@ -465,3 +465,54 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
     expect(assignmentId).toMatch(/^[a-f0-9]{24}$/);
   } finally { await studentContext.close(); }
 });
+
+test("guest entry buttons select the matching login and signup forms", async ({ page }) => {
+  await page.goto("/");
+  const header = page.locator("header").first();
+  await header.getByRole("link", { name: "Log in", exact: true }).click();
+  await expect(page.getByRole("tabpanel", { name: "Log in" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Open menu" }).click();
+  const menu = page.getByRole("dialog");
+  await expect(menu.getByRole("link", { name: "My learning" })).toHaveCount(0);
+  await menu.getByRole("link", { name: "Create account" }).click();
+  await expect(page.getByRole("tabpanel", { name: "Sign up" })).toBeVisible();
+});
+
+for (const role of ["student", "instructor", "admin"]) {
+  test(`${role} can enter their workspace from the mobile header`, async ({ page }) => {
+    const fixture = await fixtures();
+    const emails = { student: fixture.teachingStudentEmail, instructor: fixture.instructorEmail, admin: fixture.adminEmail };
+    await login(page, emails[role], fixture.password);
+    await page.setViewportSize({ width: 1024, height: 768 });
+    const accountMenu = page.getByRole("button", { name: "Account menu" });
+    await accountMenu.focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("menuitem", { name: "Profile", exact: true }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await page.setViewportSize({ width: 390, height: 844 });
+    const header = page.locator("header").first();
+    const label = role === "student" ? "My learning" : "Dashboard";
+    await header.getByRole("link", { name: label, exact: true }).click();
+    if (role === "student") {
+      await expect(page.getByRole("heading", { name: "Assignments to do" })).toBeVisible();
+      return;
+    }
+    await page.goto(`/${role}`);
+    await expect(page).toHaveURL(new RegExp(`/${role}/dashboard$`));
+    const tools = page.getByRole("navigation", { name: "Dashboard", exact: true });
+    for (const item of ["Manage courses", "Assignments", "Student progress", "Questions"]) {
+      await expect(tools.getByRole("link", { name: item, exact: true })).toBeVisible();
+    }
+    await expect(tools.getByRole("link", { name: "Users", exact: true })).toHaveCount(role === "admin" ? 1 : 0);
+    await tools.getByRole("link", { name: "Assignments", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/${role}/assignments$`));
+    await expect(page.getByRole("heading", { name: "Assignments", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await page.getByRole("button", { name: "Change language" }).click();
+    await page.keyboard.press("Escape");
+    const arabicTools = page.getByRole("navigation", { name: "لوحة التحكم", exact: true });
+    await expect(arabicTools.getByRole("link", { name: "متابعة الطلاب", exact: true })).toBeVisible();
+    expect(await arabicTools.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  });
+}

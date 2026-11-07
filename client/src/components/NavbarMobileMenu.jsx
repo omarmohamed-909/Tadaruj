@@ -101,6 +101,7 @@ const MobileNavbar = ({ user, logoutHandler, open, onOpenChange, returnFocus }) 
                 {t("about")}
               </Link>
             </SheetClose>
+            {user && <>
             <SheetClose asChild>
               <Link
                 to="/my-learning"
@@ -117,6 +118,7 @@ const MobileNavbar = ({ user, logoutHandler, open, onOpenChange, returnFocus }) 
               >
                 <UserCircle2 className="h-4 w-4 text-[#126252] dark:text-teal-300" />{" "}{ui("Edit Profile")}{" "}</Link>
             </SheetClose>
+            </>}
             {["instructor", "admin"].includes(user?.role) && (
               <>
                 <SheetClose asChild>
@@ -133,7 +135,7 @@ const MobileNavbar = ({ user, logoutHandler, open, onOpenChange, returnFocus }) 
                     onClick={() => navigate(user?.role === "admin" ? "/admin/course" : "/instructor/course")}
                     className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-base font-medium text-foreground transition-colors hover:bg-muted dark:text-foreground dark:hover:bg-secondary"
                   >
-                    <SquareLibrary className="h-4 w-4 text-[#126252] dark:text-teal-300" />{" "}{ui("Courses")}{" "}</button>
+                    <SquareLibrary className="h-4 w-4 text-[#126252] dark:text-teal-300" />{" "}{language === "ar" ? "إدارة الكورسات" : "Manage courses"}{" "}</button>
                 </SheetClose>
                 {user?.role === "admin" && <SheetClose asChild>
                   <button
@@ -173,13 +175,10 @@ const MobileNavbar = ({ user, logoutHandler, open, onOpenChange, returnFocus }) 
                 <LogOut className="mr-2 h-4 w-4" />{" "}{ui("Log out")}{" "}</Button>
             </SheetClose>
           ) : (
-            <SheetClose asChild>
-              <Button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="h-12 w-full rounded-2xl"
-              >{" "}{ui("Login")}{" "}</Button>
-            </SheetClose>
+            <div className="grid w-full grid-cols-2 gap-2">
+              <SheetClose asChild><Button asChild variant="outline" className="min-h-11"><Link to="/login?mode=login">{t("login")}</Link></Button></SheetClose>
+              <SheetClose asChild><Button asChild className="min-h-11"><Link to="/login?mode=signup">{t("signup")}</Link></Button></SheetClose>
+            </div>
           )}
         </SheetFooter>
       </SheetContent>

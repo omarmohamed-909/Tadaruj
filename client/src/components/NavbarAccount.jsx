@@ -5,8 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Link } from "react-router-dom";
 import { useLanguage } from "./languageContext";
 
-export default function NavbarAccount({ user, logoutHandler }) { const { t } = useLanguage(); const ui = useShellText(); return (<DropdownMenu>
+export default function NavbarAccount({ user, logoutHandler }) { const { t, language } = useLanguage(); const ui = useShellText(); return (<DropdownMenu>
               <DropdownMenuTrigger asChild>
+                <button type="button" aria-label={language === "ar" ? "قائمة الحساب" : "Account menu"} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full focus-visible:outline-2">
                 <Avatar className="cursor-pointer ring-2 ring-transparent transition hover:ring-slate-200 dark:hover:ring-slate-700">
                   <AvatarImage
                     src={user?.photoUrl || "/default-avatar.webp"}
@@ -14,6 +15,7 @@ export default function NavbarAccount({ user, logoutHandler }) { const { t } = u
                   />
                   <AvatarFallback>{user?.name?.trim()?.charAt(0).toUpperCase() || "?"}</AvatarFallback>
                 </Avatar>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-72 rounded-3xl border border-border/80 bg-card/95 p-2 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.35)] dark:border-border dark:bg-card/95">
                 <DropdownMenuLabel className="rounded-2xl px-3 py-3">
@@ -37,20 +39,20 @@ export default function NavbarAccount({ user, logoutHandler }) { const { t } = u
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem className="rounded-2xl px-3 py-3 focus:bg-muted dark:focus:bg-secondary">
+                  <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-muted dark:focus:bg-secondary">
                     <Link to="/" className="flex w-full items-center gap-3 font-medium">
                       <House className="h-4 w-4 text-[#126252] dark:text-teal-300" />
                       {t("home")}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-2xl px-3 py-3 focus:bg-muted dark:focus:bg-secondary">
-                    <Link to="my-learning" className="flex w-full items-center gap-3 font-medium">
+                  <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-muted dark:focus:bg-secondary">
+                    <Link to="/my-learning" className="flex w-full items-center gap-3 font-medium">
                       <BookOpen className="h-4 w-4 text-[#126252] dark:text-teal-300" />
                       {t("learning")}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="rounded-2xl px-3 py-3 focus:bg-muted dark:focus:bg-secondary">
-                    <Link to="profile" className="flex w-full items-center gap-3 font-medium">
+                  <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-muted dark:focus:bg-secondary">
+                    <Link to="/profile" className="flex w-full items-center gap-3 font-medium">
                       <UserCircle2 className="h-4 w-4 text-[#126252] dark:text-teal-300" />
                       {t("profile")}
                     </Link>
@@ -66,7 +68,7 @@ export default function NavbarAccount({ user, logoutHandler }) { const { t } = u
                 {["instructor", "admin"].includes(user?.role) && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="rounded-2xl px-3 py-3 focus:bg-muted dark:focus:bg-secondary">
+                    <DropdownMenuItem asChild className="rounded-2xl px-3 py-3 focus:bg-muted dark:focus:bg-secondary">
                       <Link to={user?.role === "admin" ? "/admin/dashboard" : "/instructor/dashboard"} className="flex w-full items-center gap-3 font-medium">
                         <BadgeCheck className="h-4 w-4 text-[#126252] dark:text-teal-300" />
                         {t("dashboard")}

@@ -29,11 +29,9 @@ function useDesktopNavigation() {
 }
 function MobileMenuTrigger({ user, logoutHandler }) {
   const { language } = useLanguage();
-  const { pathname, search } = useLocation();
   const [activated, setActivated] = useState(false);
   const [open, setOpen] = useState(false);
   const trigger = useRef(null);
-  useEffect(() => setOpen(false), [pathname, search]);
   return <>
     <button ref={trigger} type="button" aria-haspopup="dialog" aria-expanded={open} aria-label={language === "ar" ? "فتح القائمة" : "Open menu"} onPointerEnter={preloadMobileMenu} onFocus={preloadMobileMenu} onClick={() => { setActivated(true); setOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/90 text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2">
       <Menu className="h-4 w-4" />
@@ -57,6 +55,14 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const hideCenterNav = location.pathname === "/login";
+  const workspace = ["admin", "instructor"].includes(user?.role);
+  const primaryPath = workspace ? `/${user.role}/dashboard` : "/my-learning";
+  const primaryLabel = workspace ? t("dashboard") : t("learning");
+  const primaryLink = user && !checking && (
+    <NavLink to={primaryPath} className="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-primary hover:bg-accent focus-visible:outline-2">
+      {primaryLabel}
+    </NavLink>
+  );
   const logoutHandler = async () => {
     try {
       await logoutUser().unwrap();
@@ -68,7 +74,7 @@ const Navbar = () => {
   };
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-10 border-b border-border bg-[#fbfaf7]/95 backdrop-blur-xl duration-300 dark:border-border dark:bg-[#101c20]/95">
+    <header className="fixed left-0 right-0 top-0 z-10 border-b border-border bg-[#fbfaf7]/95 backdrop-blur-xl duration-300 dark:border-border dark:bg-[#101c20]/95">
       {/* Desktop */}
       <div className="relative mx-auto hidden h-16 max-w-7xl items-center px-4 lg:flex lg:px-6">
         <div className="flex items-center justify-self-start">
@@ -83,12 +89,12 @@ const Navbar = () => {
           </div>
         </div>
         {!hideCenterNav && (
-          <nav className="absolute left-1/2 flex -translate-x-1/2 items-center justify-center">
+          <nav className="mx-auto flex items-center justify-center">
             <div className="flex items-center gap-2 rounded-lg border border-border bg-card/80 p-1 dark:border-border dark:bg-secondary/70">
               <NavLink
                 to="/"
                 className={({ isActive }) =>
-                  `inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
+                  `inline-flex items-center gap-2 rounded-full px-3 py-2.5 xl:px-5 text-sm font-semibold transition-all ${
                     isActive
                       ? "bg-teal-50 text-teal-900 dark:bg-teal-900/30 dark:text-teal-200"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground"
@@ -101,7 +107,7 @@ const Navbar = () => {
               <NavLink
                 to="/courses"
                 className={({ isActive }) =>
-                  `inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
+                  `inline-flex items-center gap-2 rounded-full px-3 py-2.5 xl:px-5 text-sm font-semibold transition-all ${
                     isActive
                       ? "bg-teal-50 text-teal-900 dark:bg-teal-900/30 dark:text-teal-200"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground"
@@ -114,7 +120,7 @@ const Navbar = () => {
               <NavLink
                 to="/about-us"
                 className={({ isActive }) =>
-                  `inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
+                  `inline-flex items-center gap-2 rounded-full px-3 py-2.5 xl:px-5 text-sm font-semibold transition-all ${
                     isActive
                       ? "bg-teal-50 text-teal-900 dark:bg-teal-900/30 dark:text-teal-200"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground dark:text-muted-foreground dark:hover:bg-secondary dark:hover:text-foreground"
@@ -127,15 +133,16 @@ const Navbar = () => {
             </div>
           </nav>
         )}
-        {/* User icons and dark mode icon  */}
+        {/* Account actions */}
         <div className="ms-auto flex shrink-0 items-center gap-2 rounded-full border border-border/80 bg-card/70 px-2 py-1.5 shadow-sm dark:border-border dark:bg-card/70">
+          {primaryLink}
           {user && isDesktop && !checking && <Suspense fallback={<span className="h-10 w-10" />}><LazyNotifications user={user} /></Suspense>}
           {user ? (
             <>{isDesktop && !checking ? <Suspense fallback={<span className="h-10 w-10 rounded-full bg-muted" />}><LazyAccount user={user} logoutHandler={logoutHandler} /></Suspense> : <span className="h-10 w-10 rounded-full bg-muted" />}</>
           ) : (
             <div className="flex items-center gap-2">
-              <Link to="/login" className="inline-flex h-9 items-center justify-center rounded-full border border-border bg-background px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2">{t("login")}</Link>
-              <Link to="/login" className="inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2">{t("signup")}</Link>
+              <Link to="/login?mode=login" className="inline-flex h-9 items-center justify-center rounded-full border border-border bg-background px-4 text-sm font-medium hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2">{t("login")}</Link>
+              <Link to="/login?mode=signup" className="inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2">{t("signup")}</Link>
             </div>
           )}
           <button type="button" onClick={() => setLanguage(language === "en" ? "ar" : "en")} className="min-w-16 rounded-lg px-2 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50 dark:text-teal-200 dark:hover:bg-secondary" aria-label={ui("Change language")}>{t("language")}</button>
@@ -151,9 +158,12 @@ const Navbar = () => {
             className="h-14 w-auto object-contain"
           />
         </Link>
-        <MobileMenuTrigger user={checking ? null : user} logoutHandler={logoutHandler} />
+        <div className="ms-auto flex items-center gap-1">
+          {primaryLink}
+          <MobileMenuTrigger key={location.pathname + location.search} user={checking ? null : user} logoutHandler={logoutHandler} />
+        </div>
       </div>
-    </div>
+    </header>
   );
 };
 

@@ -101,7 +101,7 @@ const ForgotPassword = () => {
             )}
           </Button>
           <Link
-            to="/login"
+            to="/login?mode=login"
             className="inline-flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
           >
             <ArrowLeft className="h-4 w-4 rtl:rotate-180" />{" "}{ui("Back to login")}{" "}</Link>

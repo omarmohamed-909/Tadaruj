@@ -49,7 +49,7 @@ const ResetPassword = () => {
     try {
       const response = await resetPassword({ token, password }).unwrap();
       toast.success(feedback(response?.message || ui("Password reset successfully."), ui("Password reset successfully.")));
-      navigate("/login");
+      navigate("/login?mode=login");
     } catch (error) {
       toast.error(feedback(error?.data?.message || ui("Failed to reset password."), ui("Failed to reset password.")));
     }

@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import "./App.css";
 import HeroSection from "./pages/student/HeroSection";
@@ -161,6 +161,7 @@ const appRouter = createBrowserRouter([
         path: "instructor",
         element: <InstructorRoute><Sidebar /></InstructorRoute>,
         children: [
+          { index: true, element: <Navigate to="dashboard" replace /> },
           { path: "assignments", element: <AssignmentList manager /> },
           { path: "assignments/:courseId/:assignmentId", element: <AssignmentDetail manager /> },
           { path: "students", element: <StudentTracking /> },
@@ -183,6 +184,7 @@ const appRouter = createBrowserRouter([
           </AdminRoute>
         ),
         children: [
+          { index: true, element: <Navigate to="dashboard" replace /> },
           { path: "assignments", element: <AssignmentList manager /> },
           { path: "assignments/:courseId/:assignmentId", element: <AssignmentDetail manager /> },
           { path: "students", element: <StudentTracking /> },

@@ -33,13 +33,14 @@ export const AutheticatedUser = ({ children }) => {
 }
 
 const RoleRoute = ({ children, role }) => {
+    const location = useLocation();
     const {user,isAuthenticated} = useSelector((store) => store.auth);
     const session = useSession();
     if (session.checking) return <LoadingSpinner />;
     if (session.failed) return <ConnectionRetry onRetry={session.retry} />;
 
     if(!isAuthenticated || session.rejected){
-        return <Navigate to="/login"/>;
+        return <Navigate to="/login?mode=login" state={{ from: location.pathname + location.search }} replace />;
     }
 
     if(user?.role !== role){
