@@ -157,6 +157,25 @@ describe.skipIf(!uri)("isolated MongoDB student/payment journey", () => {
     expect(second.rows[1].overdue).toBe(false);
   });
 
+  it("scopes assignment tracking to a course manager and roster member and distinguishes late work from missing work", async () => {
+    const assignment = await prepareAssignment();
+    await invoke(createAssignment, assignmentRequest(teacher, null, { ...assignmentDefinition, published: false }));
+    const req = assignmentRequest(teacher, null, {}, { studentId: String(student._id) });
+    const read = async () => payload(await invoke(getStudentTracking, req));
+    const overdueRoster = async () => payload(await invoke(getStudentTracking, { ...assignmentRequest(teacher), query: { status: "assignment-overdue" } }));
+    expect((await read()).rows).toHaveLength(1);
+    expect((await read()).rows[0]).toMatchObject({ overdue: true, submission: null });
+    expect((await overdueRoster()).total).toBe(1);
+    const sent = payload(await invoke(submitAssignment, assignmentRequest(student, assignment, { text: "My response", revision: 0 }))).submission;
+    expect((await read()).rows[0]).toMatchObject({ overdue: false, submission: { status: "submitted", late: true } });
+    expect((await overdueRoster()).total).toBe(0);
+    await invoke(reviewSubmission, assignmentRequest(teacher, assignment, { revision: 1, decision: "returned", feedback: "Revise" }, { submissionId: String(sent._id) }));
+    expect((await overdueRoster()).total).toBe(1);
+    expect((await read()).rows[0].submission).not.toHaveProperty("attempts");
+    expect((await invoke(getStudentTracking, { ...req, id: String(student._id), user: student })).status).toHaveBeenCalledWith(403);
+    expect((await invoke(getStudentTracking, { ...req, params: { ...req.params, studentId: String(new mongoose.Types.ObjectId()) } })).status).toHaveBeenCalledWith(404);
+  });
+
   it("serializes duplicate submissions and competing reviews and locks the submitted rubric", async () => {
     const assignment = await prepareAssignment();
     const req = assignmentRequest(student, assignment, { text: "Answer", revision: 0 });

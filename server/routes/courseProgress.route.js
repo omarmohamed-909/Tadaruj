@@ -37,6 +37,7 @@ router.post('/assignments/:courseId/:assignmentId/submit', isAuthenticated, subm
 
 router.get('/teaching/questions', isAuthenticated, authorizeRoles('instructor', 'admin'), getQuestionInbox);
 router.get('/teaching/:courseId/students', isAuthenticated, requireCourseManager, getStudentTracking);
+router.get('/teaching/:courseId/students/:studentId/assignments', isAuthenticated, requireCourseManager, getStudentTracking);
 router.patch('/teaching/:courseId/questions/:commentId', isAuthenticated, requireCourseManager, resolveQuestion);
 router.patch('/teaching/:courseId/lecture/:lectureId/quiz-settings', isAuthenticated, requireCourseManager, updateQuizSettings);
 router.get('/my-learning', isAuthenticated, getMyLearning);

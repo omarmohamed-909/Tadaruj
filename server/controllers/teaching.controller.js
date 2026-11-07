@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Assignment, AssignmentSubmission } from "../models/assignment.model.js";
 import { Course } from "../models/course.model.js";
 import { Lecture } from "../models/lecture.model.js";
 import { User } from "../models/user.model.js";
@@ -35,9 +36,32 @@ export async function updateQuizSettings(req, res) {
   } catch (error) { reportError("teaching.quiz_settings.failed", error); return res.status(500).json({ message: "Could not save quiz settings." }); }
 }
 
+async function studentAssignmentPage(courseId, studentId, requestedPage) {
+  const filter = { courseId, published: true };
+  const total = await Assignment.countDocuments(filter);
+  const totalPages = Math.max(1, Math.ceil(total / 12));
+  const page = Math.min(requestedPage, totalPages);
+  const assignments = await Assignment.find(filter)
+    .select("title maxScore dueAt closed")
+    .sort({ createdAt: -1, _id: -1 })
+    .skip((page - 1) * 12).limit(12).lean();
+  const submissions = await AssignmentSubmission.find({
+    courseId, studentId, assignmentId: { $in: assignments.map(item => item._id) },
+  }).select("assignmentId status submittedAt late score revision attemptCount").lean();
+  const byAssignment = new Map(submissions.map(item => [String(item.assignmentId), item]));
+  const now = new Date();
+  const rows = assignments.map(assignment => {
+    const submission = byAssignment.get(String(assignment._id)) || null;
+    const awaitingStudent = !submission || submission.status === "returned";
+    const overdue = Boolean(awaitingStudent && assignment.dueAt && assignment.dueAt < now);
+    return { ...assignment, submission, overdue };
+  });
+  return { rows, page, total, totalPages };
+}
+
 export async function getStudentTracking(req, res) {
   try {
-    const options = filters(req.query, ["all", "not-started", "in-progress", "completed", "needs-attention"]);
+    const options = filters(req.query, ["all", "not-started", "in-progress", "completed", "needs-attention", "assignment-overdue"]);
     if (!options) return res.status(400).json({ message: "Invalid student filters." });
     const course = await Course.findById(req.params.courseId).select("creator courseTitle coursePrice lectures").populate("lectures", "lectureTitle quizQuestions._id quizPassPercentage").lean();
     if (!course) return res.status(404).json({ message: "Course not found." });
@@ -45,19 +69,63 @@ export async function getStudentTracking(req, res) {
     const cid = course._id, courseId = String(cid);
     const lessonIds = course.lectures.map(item => String(item._id));
     const quizIds = course.lectures.filter(item => item.quizQuestions?.length).map(item => String(item._id));
-    const pipeline = [
-      { $match: { role: "student", ...(options.q ? { $or: [{ name: { $regex: escaped(options.q), $options: "i" } }, { email: { $regex: escaped(options.q), $options: "i" } }] } : {}) } },
+    const studentId = req.params.studentId;
+    if (studentId && !mongoose.isObjectIdOrHexString(studentId)) {
+      return res.status(400).json({ message: "Invalid student ID." });
+    }
+    const freeCourse = Number(course.coursePrice || 0) <= 0;
+    const roster = [
+      { $match: { role: "student", ...(studentId ? { _id: objectId(studentId) } : {}), ...(options.q ? { $or: [{ name: { $regex: escaped(options.q), $options: "i" } }, { email: { $regex: escaped(options.q), $options: "i" } }] } : {}) } },
       { $project: { name: 1, email: 1, enrolledCourses: 1, createdAt: 1 } },
       { $lookup: { from: "coursepurchases", let: { uid: "$_id" }, pipeline: [{ $match: { courseId: cid, status: "completed", $expr: { $eq: ["$userId", "$$uid"] } } }, { $limit: 1 }, { $project: { _id: 1 } }], as: "purchases" } },
       { $lookup: { from: "courseprogresses", let: { uid: { $toString: "$_id" } }, pipeline: [{ $match: { courseId, $expr: { $eq: ["$userId", "$$uid"] } } }, { $project: { lectureProgress: 1 } }], as: "progress" } },
       { $lookup: { from: "learningpositions", let: { uid: "$_id" }, pipeline: [{ $match: { courseId: cid, lectureId: { $in: course.lectures.map(item => item._id) }, $expr: { $eq: ["$userId", "$$uid"] } } }, { $sort: { updatedAt: -1 } }, { $limit: 1 }, { $project: { updatedAt: 1 } }], as: "positions" } },
       { $lookup: { from: "quizresults", let: { uid: "$_id" }, pipeline: [{ $match: { courseId: cid, lectureId: { $in: course.lectures.filter(item => item.quizQuestions?.length).map(item => item._id) }, $expr: { $eq: ["$userId", "$$uid"] } } }, { $project: { lectureId: 1, percentage: 1, bestPercentage: 1, attemptsCount: 1, updatedAt: 1 } }], as: "quizzes" } },
-      { $match: { $expr: { $or: [{ $in: [cid, { $ifNull: ["$enrolledCourses", []] }] }, { $gt: [{ $size: "$purchases" }, 0] }, ...(Number(course.coursePrice || 0) <= 0 ? [{ $gt: [{ $add: [{ $size: "$progress" }, { $size: "$positions" }, { $size: "$quizzes" }] }, 0] }] : [])] } } },
+      ...(freeCourse ? [{ $lookup: {
+        from: AssignmentSubmission.collection.name, let: { uid: "$_id" },
+        pipeline: [
+          { $match: { courseId: cid, $expr: { $eq: ["$studentId", "$$uid"] } } },
+          { $limit: 1 }, { $project: { _id: 1 } },
+        ], as: "assignmentActivity",
+      } }] : []),
+      { $match: { $expr: { $or: [{ $in: [cid, { $ifNull: ["$enrolledCourses", []] }] }, { $gt: [{ $size: "$purchases" }, 0] }, ...(freeCourse ? [{ $gt: [{ $add: [{ $size: "$progress" }, { $size: "$positions" }, { $size: "$quizzes" }, { $size: "$assignmentActivity" }] }, 0] }] : [])] } } },
+    ];
+    if (studentId) {
+      const [member] = await User.aggregate([...roster, { $project: { _id: 1 } }]);
+      if (!member) return res.status(404).json({ message: "Student not found in course." });
+      return res.json(await studentAssignmentPage(cid, member._id, options.page));
+    }
+    if (options.status === "assignment-overdue") {
+      roster.push(
+        { $lookup: {
+          from: Assignment.collection.name,
+          let: { student: "$_id" },
+          pipeline: [
+            { $match: { courseId: cid, published: true, dueAt: { $type: "date", $lt: new Date() } } },
+            { $lookup: {
+              from: AssignmentSubmission.collection.name,
+              localField: "_id", foreignField: "assignmentId",
+              pipeline: [
+                { $match: { $expr: { $eq: ["$studentId", "$$student"] } } },
+                { $project: { status: 1 } },
+              ],
+              as: "work",
+            } },
+            { $match: { "work.status": { $nin: ["submitted", "graded"] } } },
+            { $limit: 1 }, { $project: { _id: 1 } },
+          ],
+          as: "overdueAssignments",
+        } },
+        { $match: { "overdueAssignments.0": { $exists: true } } },
+      );
+    }
+    const pipeline = [
+      ...roster,
       { $set: { viewed: { $setIntersection: [lessonIds, { $map: { input: { $filter: { input: { $reduce: { input: "$progress", initialValue: [], in: { $concatArrays: ["$$value", { $ifNull: ["$$this.lectureProgress", []] }] } } }, as: "item", cond: "$$item.viewed" } }, as: "item", in: "$$item.lectureId" } }] }, submitted: { $map: { input: "$quizzes", as: "quiz", in: { $toString: "$$quiz.lectureId" } } }, lastActivity: { $max: [{ $max: "$positions.updatedAt" }, { $max: "$quizzes.updatedAt" }] }, averageScore: { $avg: "$quizzes.percentage" } } },
       { $set: { completedLessons: { $size: { $setDifference: ["$viewed", { $setDifference: [quizIds, "$submitted"] }] } }, needsAttention: { $or: [{ $and: [{ $ne: ["$lastActivity", null] }, { $lt: ["$lastActivity", new Date(Date.now() - 7 * 86400000)] }] }, { $anyElementTrue: [{ $map: { input: "$quizzes", as: "quiz", in: { $lt: ["$$quiz.percentage", (quizIds.length ? { $switch: { branches: course.lectures.filter(item => item.quizQuestions?.length).map(item => ({ case: { $eq: ["$$quiz.lectureId", item._id] }, then: item.quizPassPercentage ?? 60 })), default: 60 } } : 60)] } } }] }] } } },
       { $set: { status: { $cond: [{ $and: [{ $gt: [lessonIds.length, 0] }, { $eq: ["$completedLessons", lessonIds.length] }] }, "completed", { $cond: [{ $gt: [{ $add: [{ $size: "$viewed" }, { $size: "$quizzes" }, { $size: "$positions" }] }, 0] }, "in-progress", "not-started"] }] } } },
       { $project: { name: 1, email: 1, createdAt: 1, viewed: 1, quizzes: 1, completedLessons: 1, lastActivity: 1, averageScore: 1, status: 1, needsAttention: 1 } },
-      ...(options.status === "needs-attention" ? [{ $match: { needsAttention: true } }] : options.status !== "all" ? [{ $match: { status: options.status } }] : []),
+      ...(options.status === "needs-attention" ? [{ $match: { needsAttention: true } }] : !["all", "assignment-overdue"].includes(options.status) ? [{ $match: { status: options.status } }] : []),
     ];
     const result = await pageAggregate(User, pipeline, options.page);
     return res.json({ ...result, courseTitle: course.courseTitle, totalLessons: lessonIds.length, lectures: course.lectures.map(item => ({ _id: item._id, lectureTitle: item.lectureTitle, hasQuiz: Boolean(item.quizQuestions?.length), passPercentage: item.quizPassPercentage ?? 60 })) });

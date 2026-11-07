@@ -444,6 +444,12 @@ test("assignment lifecycle preserves revisions and grades across teacher and stu
     await expect(student.getByText("Submission version 1", { exact: false })).toBeVisible();
     await page.getByText("Edit assignment settings", { exact: true }).click();
     await expect(page.getByLabel("Maximum score", { exact: true })).toBeDisabled();
+    await page.goto(`/instructor/students?courseId=${fixture.teachingCourseId}&q=${encodeURIComponent(fixture.teachingStudentEmail)}`);
+    await page.getByText("Student assignments", { exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Gravity assignment" })).toBeVisible();
+    await page.getByRole("button", { name: "View and review", exact: true }).click();
+    await expect(page.getByText("Clear explanation.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Score: 18/20", { exact: true })).toBeVisible();
     await student.getByRole("button", { name: "Switch to dark mode", exact: true }).click();
     await student.getByRole("button", { name: "Change language", exact: true }).click();
     await student.setViewportSize({ width: 390, height: 844 });
